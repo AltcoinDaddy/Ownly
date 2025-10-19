@@ -64,6 +64,29 @@ export class DapperService {
     return dapperClient.getEvents(cursor)
   }
 
+  // Get marketplace listings with filtering and pagination
+  async getMarketplaceListings(options?: {
+    cursor?: string
+    limit?: number
+    category?: string
+    minPrice?: number
+    maxPrice?: number
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+  }) {
+    const queryParams = new URLSearchParams()
+    
+    if (options?.cursor) queryParams.append('cursor', options.cursor)
+    if (options?.limit) queryParams.append('limit', options.limit.toString())
+    if (options?.category) queryParams.append('category', options.category)
+    if (options?.minPrice) queryParams.append('min_price', options.minPrice.toString())
+    if (options?.maxPrice) queryParams.append('max_price', options.maxPrice.toString())
+    if (options?.sortBy) queryParams.append('sort_by', options.sortBy)
+    if (options?.sortOrder) queryParams.append('sort_order', options.sortOrder)
+
+    return dapperClient.getMarketplaceListings(queryParams.toString())
+  }
+
   // Validate Flow address format
   static isValidFlowAddress(address: string): boolean {
     return /^0x[a-fA-F0-9]{16}$/.test(address)

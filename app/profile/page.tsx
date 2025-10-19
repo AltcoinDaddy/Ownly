@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { useWallet } from "@/lib/wallet-context"
 import { useUserCollection } from "@/hooks/use-user-collection"
+import { useRealTimeNFTGallery } from "@/lib/flow/hooks"
 import { mockTransactions } from "@/lib/mock-data"
 import { Settings, Share2, Copy, CheckCircle2, Loader2, RefreshCw } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -35,6 +36,12 @@ export default function ProfilePage() {
     useCache: true,
     refreshInterval: 30000 // Refresh every 30 seconds
   })
+
+  // Real-time gallery updates
+  const { 
+    realTimeUpdates, 
+    lastUpdate 
+  } = useRealTimeNFTGallery()
 
   if (!isConnected || !user) {
     return (
@@ -157,15 +164,22 @@ export default function ProfilePage() {
                   <TabsTrigger value="activity">Activity ({userTransactions.length})</TabsTrigger>
                 </TabsList>
 
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleRefresh}
-                  disabled={nftsLoading}
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${nftsLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
+                <div className="flex items-center gap-2">
+                  {realTimeUpdates > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {realTimeUpdates} live updates
+                    </Badge>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleRefresh}
+                    disabled={nftsLoading}
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${nftsLoading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
               </div>
 
               <TabsContent value="owned">

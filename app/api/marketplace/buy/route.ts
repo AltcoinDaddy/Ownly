@@ -2,10 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { dapperClient } from '@/lib/dapper/client'
 import { DapperAPIError } from '@/lib/dapper/types'
+import { marketplaceCacheService } from '@/lib/marketplace-cache'
+import { flowMarketplaceService } from '@/lib/flow/marketplace-service'
 
 export async function POST(request: NextRequest) {
   try {
-    const { nft_id, buyer } = await request.json()
+    const { nft_id, buyer, seller, use_flow_transaction = false } = await request.json()
 
     // Validate required fields
     if (!nft_id) {
@@ -30,11 +32,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Call Dapper Core API
-    const buyResponse = await dapperClient.buyNFT({
-      nft_id,
-      buyer
-    })
+    let buyResponse
+
+    if (use_flow_transaction && seller) {
+      // Use Flow blockchain transaction directly
+      console.log('Using Flow transaction for purchase')
+      
+      const flowResult = await flowMarketplaceService.purchaseNFT(nft_id, seller)
+      
+      if (flowResult.status === 'failed') {
+        throw new Error(flowResult.error || 'Flow transaction failed')
+      }
+
+      buyResponse = {
+        transaction_hash: flowResult.transactionId,
+        status: 'completed',
+        processed_at: new Date().toISOString(),
+        method: 'flow_transaction'
+      }
+    } else {
+      // Use Dapper Core API
+      console.log('Using Dapper Core API for purchase')
+      
+      buyResponse = await dapperClient.buyNFT({
+        nft_id,
+        buyer
+      })
+    }
+
+    // Invalidate marketplace cache since purchase was made
+    marketplaceCacheService.invalidateCache()
 
     return NextResponse.json(buyResponse)
   } catch (error) {
@@ -52,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     )
   }

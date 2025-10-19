@@ -1,6 +1,7 @@
-// User NFTs API endpoint with enhanced collection query service
+// User NFTs API endpoint with enhanced collection query service and MongoDB caching
 import { NextRequest, NextResponse } from 'next/server'
 import { collectionQueryService } from '@/lib/flow/collection-service'
+import { enhancedCacheService } from '@/lib/database'
 import { DapperAPIError } from '@/lib/dapper/types'
 
 export async function GET(
@@ -23,8 +24,18 @@ export async function GET(
       )
     }
 
-    // Get user's complete NFT collection using enhanced service
-    const collectionResult = await collectionQueryService.getUserCollection(address, useCache)
+    // Get user's complete NFT collection using enhanced caching service
+    const userNFTs = await enhancedCacheService.getUserCollection(address, useCache)
+    
+    // Get user profile data
+    const userProfile = await enhancedCacheService.getUser(address, useCache)
+    
+    const collectionResult = {
+      user: userProfile,
+      nfts: userNFTs,
+      total: userNFTs.length,
+      cached: useCache
+    }
 
     // Add cache headers
     const response = NextResponse.json(collectionResult)
@@ -90,8 +101,8 @@ export async function POST(
       )
     }
 
-    // Get detailed NFT information
-    const nftDetails = await collectionQueryService.getNFTDetails(address, nft_id)
+    // Get detailed NFT information using enhanced cache
+    const nftDetails = await enhancedCacheService.getNFT(nft_id, true)
 
     if (!nftDetails) {
       return NextResponse.json(

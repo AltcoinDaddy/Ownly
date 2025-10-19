@@ -27,6 +27,7 @@ export const DAPPER_ENDPOINTS = {
   TRANSFER: '/v1/nft/transfer',
   MARKETPLACE_LIST: '/v1/marketplace/list',
   MARKETPLACE_BUY: '/v1/marketplace/buy',
+  MARKETPLACE: '/v1/marketplace',
   USER: '/v1/user',
   EVENTS: '/v1/events'
 } as const

@@ -6,7 +6,21 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:flow": "vitest run test/flow-emulator",
+    "test:flow:watch": "vitest test/flow-emulator",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report",
+    "flow:emulator": "flow emulator start",
+    "flow:deploy": "flow project deploy --network emulator",
+    "flow:setup": "flow transactions send scripts/setup-test-accounts.cdc --network emulator --signer emulator-account"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -38,6 +52,7 @@
     "@radix-ui/react-toggle": "1.1.1",
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
+    "@types/mongodb": "^4.0.7",
     "@vercel/analytics": "latest",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
@@ -48,6 +63,7 @@
     "geist": "latest",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
+    "mongodb": "^6.20.0",
     "next": "15.2.4",
     "next-themes": "^0.4.6",
     "nft.storage": "latest",
@@ -64,13 +80,23 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4.1.9",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^14.2.1",
+    "@testing-library/user-event": "^14.5.2",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^1.3.1",
+    "@vitest/ui": "^1.3.1",
+    "jsdom": "^24.0.0",
+    "msw": "^2.2.1",
+    "playwright": "^1.56.1",
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^1.3.1"
   }
 }

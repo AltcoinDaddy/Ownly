@@ -2,10 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { dapperClient } from '@/lib/dapper/client'
 import { DapperAPIError } from '@/lib/dapper/types'
+import { marketplaceCacheService } from '@/lib/marketplace-cache'
+import { flowMarketplaceService } from '@/lib/flow/marketplace-service'
 
 export async function POST(request: NextRequest) {
   try {
-    const { nft_id, price, seller } = await request.json()
+    const { nft_id, price, seller, use_flow_transaction = false } = await request.json()
 
     // Validate required fields
     if (!nft_id) {
@@ -37,13 +39,38 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Call Dapper Core API
-    const listResponse = await dapperClient.listNFT({
-      nft_id,
-      price,
-      currency: 'FLOW',
-      seller
-    })
+    let listResponse
+
+    if (use_flow_transaction) {
+      // Use Flow blockchain transaction directly
+      console.log('Using Flow transaction for listing')
+      
+      const flowResult = await flowMarketplaceService.listNFTForSale(nft_id, price.toString())
+      
+      if (flowResult.status === 'failed') {
+        throw new Error(flowResult.error || 'Flow transaction failed')
+      }
+
+      listResponse = {
+        transaction_hash: flowResult.transactionId,
+        status: 'completed',
+        processed_at: new Date().toISOString(),
+        method: 'flow_transaction'
+      }
+    } else {
+      // Use Dapper Core API
+      console.log('Using Dapper Core API for listing')
+      
+      listResponse = await dapperClient.listNFT({
+        nft_id,
+        price,
+        currency: 'FLOW',
+        seller
+      })
+    }
+
+    // Invalidate marketplace cache since new listing was created
+    marketplaceCacheService.invalidateCache()
 
     return NextResponse.json(listResponse)
   } catch (error) {
@@ -61,7 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     )
   }

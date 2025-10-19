@@ -1,7 +1,7 @@
 // Collection Query Service - Combines Flow scripts with Dapper API and caching
 
 import * as fcl from "@onflow/fcl"
-import { dapperService } from "@/lib/dapper/service"
+import { dapperService, DapperService } from "@/lib/dapper/service"
 import { getUserNFTs, getNFTDetails, getCollectionInfo, checkUserCollection } from "./scripts"
 import type { NFT, OwnlyNFTData } from "@/lib/types"
 
@@ -47,11 +47,11 @@ class CollectionQueryService {
   // Main method to get user's complete NFT collection
   async getUserCollection(address: string, useCache = true): Promise<CollectionQueryResult> {
     // Validate address format
-    if (!dapperService.isValidFlowAddress(address)) {
+    if (!DapperService.isValidFlowAddress(address)) {
       throw new Error('Invalid Flow address format')
     }
 
-    const formattedAddress = dapperService.formatFlowAddress(address)
+    const formattedAddress = DapperService.formatFlowAddress(address)
 
     // Check cache first
     if (useCache) {
@@ -114,7 +114,7 @@ class CollectionQueryService {
 
   // Get detailed NFT information
   async getNFTDetails(address: string, nftId: string): Promise<EnrichedNFT | null> {
-    const formattedAddress = dapperService.formatFlowAddress(address)
+    const formattedAddress = DapperService.formatFlowAddress(address)
     
     try {
       // Get detailed data from Flow blockchain
@@ -313,7 +313,7 @@ class CollectionQueryService {
   // Clear cache for specific address
   clearCache(address?: string): void {
     if (address) {
-      const formattedAddress = dapperService.formatFlowAddress(address)
+      const formattedAddress = DapperService.formatFlowAddress(address)
       this.cache.delete(formattedAddress)
     } else {
       this.cache.clear()

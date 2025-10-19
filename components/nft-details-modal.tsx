@@ -26,6 +26,7 @@ import {
   Loader2
 } from "lucide-react"
 import { toast } from "sonner"
+import { NFTTransactionHistory } from "./nft-transaction-history"
 
 interface NFTDetailsModalProps {
   nft: EnrichedNFT | null
@@ -285,15 +286,7 @@ export function NFTDetailsModal({
                 </TabsContent>
 
                 <TabsContent value="history" className="space-y-4 mt-4">
-                  <Card>
-                    <CardContent className="p-8 text-center">
-                      <Calendar className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-sm text-muted-foreground mb-2">Transaction History</p>
-                      <p className="text-xs text-muted-foreground">
-                        Transaction history will be available in a future update
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <NFTTransactionHistory nftId={nft.id} />
                 </TabsContent>
               </Tabs>
             </ScrollArea>

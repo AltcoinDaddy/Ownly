@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,8 +13,12 @@ import { NFTDetailsModal } from "./nft-details-modal"
 import { TransferNFTModal } from "./transfer-nft-modal"
 import { ListForSaleModal } from "./list-for-sale-modal"
 import type { EnrichedNFT } from "@/lib/flow/collection-service"
-import { Search, Filter, Grid3X3, Grid2X2, List, SortAsc, SortDesc } from "lucide-react"
+import { Search, Filter, Grid3X3, Grid2X2, List, SortAsc, SortDesc, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
+import { useNFTTransfer } from "@/hooks/use-nft-transfer"
+import { useNFTEvents, useEvents } from "@/lib/flow/event-context"
+import { useEnhancedNFTCollection } from "@/hooks/use-enhanced-nft-collection"
+import { useWallet } from "@/lib/wallet-context"
 
 interface NFTGalleryProps {
   nfts: EnrichedNFT[]
@@ -60,15 +64,125 @@ export function NFTGallery({
   const [showTransferModal, setShowTransferModal] = useState(false)
   const [showListForSaleModal, setShowListForSaleModal] = useState(false)
 
+  // Enhanced collection integration
+  const { address } = useWallet()
+  const { handleTransferNFT, handleListNFTForSale, isTransferring, isListing } = useEnhancedNFTCollection()
+  
+  // Enhanced real-time event integration
+  const { 
+    galleryUpdateCount, 
+    latestEvent: latestNFTEvent,
+    onNFTMinted,
+    onNFTTransferred,
+    onNFTSold,
+    onNFTListed
+  } = useEvents()
+  const [lastUpdateCount, setLastUpdateCount] = useState(0)
+  const [realtimeNFTs, setRealtimeNFTs] = useState<EnrichedNFT[]>([])
+
+  // Auto-refresh when real-time events occur
+  useEffect(() => {
+    if (galleryUpdateCount > lastUpdateCount && onRefresh) {
+      console.log("[NFTGallery] Real-time update detected, refreshing gallery")
+      onRefresh()
+      setLastUpdateCount(galleryUpdateCount)
+      
+      // Show event-specific notification with enhanced context
+      if (latestNFTEvent) {
+        const eventType = latestNFTEvent.type
+        const eventData = latestNFTEvent.data
+        
+        if (eventType.includes("MINTED") && eventData.recipient === address) {
+          toast.success("New NFT minted in your collection!", {
+            description: `NFT #${eventData.nftId} has been added to your gallery`,
+            duration: 5000,
+            action: {
+              label: "View",
+              onClick: () => window.location.href = `/nft/${eventData.nftId}`
+            }
+          })
+          // Trigger event handler
+          onNFTMinted(eventData.nftId, eventData.recipient)
+        } else if (eventType.includes("TRANSFERRED")) {
+          if (eventData.to === address) {
+            toast.success("NFT received!", {
+              description: `NFT #${eventData.nftId} has been transferred to your collection`,
+              duration: 5000
+            })
+          } else if (eventData.from === address) {
+            toast.info("NFT transferred", {
+              description: `NFT #${eventData.nftId} has been sent successfully`,
+              duration: 4000
+            })
+          }
+          // Trigger event handler
+          onNFTTransferred(eventData.nftId, eventData.from, eventData.to)
+        } else if (eventType.includes("SALE") && (eventData.buyer === address || eventData.seller === address)) {
+          const isBuyer = eventData.buyer === address
+          toast.success(isBuyer ? "NFT purchased!" : "NFT sold!", {
+            description: `NFT #${eventData.nftId} ${isBuyer ? 'purchased' : 'sold'} for ${eventData.price} ${eventData.currency}`,
+            duration: 6000
+          })
+          // Trigger event handler
+          onNFTSold(eventData.nftId, eventData.seller, eventData.buyer, eventData.price)
+        } else if (eventType.includes("LISTING") && eventData.seller === address) {
+          toast.info("NFT listed for sale", {
+            description: `NFT #${eventData.nftId} is now listed for ${eventData.price} ${eventData.currency}`,
+            duration: 4000
+          })
+          // Trigger event handler
+          onNFTListed(eventData.nftId, eventData.seller, eventData.price)
+        }
+      }
+    }
+  }, [galleryUpdateCount, lastUpdateCount, onRefresh, latestNFTEvent, address, onNFTMinted, onNFTTransferred, onNFTSold, onNFTListed])
+
+  // Listen for real-time NFT events to show immediate updates
+  useEffect(() => {
+    const handleNFTEvent = (event: CustomEvent) => {
+      const { eventType, data } = event.detail
+      
+      if (eventType === 'mint' && data.owner === address) {
+        // Show optimistic update for minted NFT
+        const optimisticNFT: EnrichedNFT = {
+          id: data.nftId,
+          name: `NFT #${data.nftId}`,
+          description: "Recently minted NFT",
+          image: "/placeholder.svg",
+          metadata_url: "",
+          owner: data.owner,
+          creator: data.owner,
+          collection_id: "ownly_collectibles",
+          minted_at: new Date().toISOString(),
+          transaction_hash: data.transactionId,
+          rarity: "common",
+          category: "digital_art"
+        }
+        
+        setRealtimeNFTs(prev => [optimisticNFT, ...prev])
+        
+        // Remove optimistic update after refresh
+        setTimeout(() => {
+          setRealtimeNFTs(prev => prev.filter(nft => nft.id !== data.nftId))
+        }, 5000)
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("nft-event", handleNFTEvent as EventListener)
+      return () => window.removeEventListener("nft-event", handleNFTEvent as EventListener)
+    }
+  }, [address])
+
   // Get unique categories from NFTs
   const categories = useMemo(() => {
     const cats = new Set(nfts.map(nft => nft.collection_id || 'uncategorized'))
     return ['all', ...Array.from(cats)]
   }, [nfts])
 
-  // Filter and sort NFTs
+  // Filter and sort NFTs (including real-time optimistic updates)
   const filteredAndSortedNFTs = useMemo(() => {
-    let filtered = nfts
+    let filtered = [...realtimeNFTs, ...nfts]
 
     // Apply search filter
     if (searchQuery.trim()) {
@@ -139,44 +253,32 @@ export function NFTGallery({
     setShowListForSaleModal(true)
   }
 
-  // Action handlers
-  const handleTransferNFT = async (nft: EnrichedNFT, recipientAddress: string) => {
+  // Enhanced action handlers using the collection hook
+  const handleTransferAction = async (nft: EnrichedNFT, recipientAddress: string) => {
     try {
-      // TODO: Implement actual transfer logic with Flow transactions
-      console.log('Transferring NFT:', nft.id, 'to:', recipientAddress)
+      await handleTransferNFT(nft, recipientAddress)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      toast.success(`NFT "${nft.name}" transfer initiated to ${recipientAddress.slice(0, 8)}...`)
-      
-      // Refresh the collection after transfer
+      // Trigger refresh callback if provided
       if (onRefresh) {
-        onRefresh()
+        setTimeout(() => onRefresh(), 1000)
       }
     } catch (error) {
       console.error('Transfer failed:', error)
-      throw new Error('Failed to transfer NFT. Please try again.')
+      throw error
     }
   }
 
-  const handleListNFTForSale = async (nft: EnrichedNFT, price: number, currency: string, duration?: number) => {
+  const handleListForSaleAction = async (nft: EnrichedNFT, price: number, currency: string, duration?: number) => {
     try {
-      // TODO: Implement actual listing logic with Flow marketplace transactions
-      console.log('Listing NFT for sale:', nft.id, 'price:', price, currency, 'duration:', duration)
+      await handleListNFTForSale(nft, price, currency, duration)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      toast.success(`NFT "${nft.name}" listed for sale at ${price} ${currency}`)
-      
-      // Refresh the collection after listing
+      // Trigger refresh callback if provided
       if (onRefresh) {
-        onRefresh()
+        setTimeout(() => onRefresh(), 1000)
       }
     } catch (error) {
       console.error('Listing failed:', error)
-      throw new Error('Failed to list NFT for sale. Please try again.')
+      throw error
     }
   }
 
@@ -442,8 +544,14 @@ export function NFTGallery({
           {searchQuery && ` matching "${searchQuery}"`}
         </p>
         {onRefresh && (
-          <Button variant="ghost" size="sm" onClick={onRefresh}>
+          <Button variant="ghost" size="sm" onClick={onRefresh} className="gap-2">
+            <RefreshCw className="w-4 h-4" />
             Refresh
+            {galleryUpdateCount > 0 && (
+              <Badge variant="secondary" className="ml-1 text-xs">
+                {galleryUpdateCount}
+              </Badge>
+            )}
           </Button>
         )}
       </div>
@@ -476,15 +584,29 @@ export function NFTGallery({
       <TransferNFTModal
         nft={selectedNFT}
         open={showTransferModal}
-        onOpenChange={setShowTransferModal}
-        onTransfer={handleTransferNFT}
+        onOpenChange={(open) => {
+          if (!isTransferring && !isListing) {
+            setShowTransferModal(open)
+          }
+        }}
+        onTransfer={handleTransferAction}
       />
 
       <ListForSaleModal
         nft={selectedNFT}
         open={showListForSaleModal}
-        onOpenChange={setShowListForSaleModal}
-        onListForSale={handleListNFTForSale}
+        onOpenChange={(open) => {
+          if (!isTransferring && !isListing) {
+            setShowListForSaleModal(open)
+          }
+        }}
+        onListForSale={handleListForSaleAction}
+        onListingComplete={() => {
+          // Additional callback for listing completion
+          if (onRefresh) {
+            setTimeout(() => onRefresh(), 2000)
+          }
+        }}
       />
     </div>
   )

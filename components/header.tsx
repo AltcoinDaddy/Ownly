@@ -11,6 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { EventNotifications, RealTimeIndicator } from "@/components/event-notifications"
+import { CompactRealTimeIndicator } from "@/components/real-time-integration"
 
 export function Header() {
   const { isConnected, user, connect, disconnect } = useWallet()
@@ -44,6 +46,8 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-3">
+            {isConnected && <CompactRealTimeIndicator />}
+            {isConnected && <EventNotifications />}
             {isConnected && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -72,6 +76,10 @@ export function Header() {
               </Button>
             )}
           </div>
+        </div>
+      </div>
+      <RealTimeIndicator />
+    </header>
         </div>
       </div>
     </header>

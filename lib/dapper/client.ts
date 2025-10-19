@@ -8,6 +8,7 @@ import type {
   DapperMarketplaceListRequest,
   DapperMarketplaceBuyRequest,
   DapperMarketplaceResponse,
+  DapperMarketplaceListingsResponse,
   DapperUserResponse,
   DapperEventsResponse,
   DapperError
@@ -21,6 +22,7 @@ import {
   DAPPER_RETRY_ATTEMPTS,
   DAPPER_RETRY_DELAY 
 } from './config'
+import { performanceCollector } from '@/lib/performance/collector'
 
 class DapperClient {
   private config = getDapperConfig()
@@ -29,7 +31,9 @@ class DapperClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    const startTime = performance.now()
     const url = `${this.config.baseUrl}${endpoint}`
+    const method = options.method || 'GET'
     
     const defaultHeaders = {
       'Content-Type': 'application/json',
@@ -47,10 +51,25 @@ class DapperClient {
     }
 
     let lastError: Error | null = null
+    let finalStatusCode = 0
+    let requestSize: number | undefined
+    let responseSize: number | undefined
+
+    // Calculate request size
+    if (options.body) {
+      requestSize = new Blob([options.body]).size
+    }
 
     for (let attempt = 1; attempt <= DAPPER_RETRY_ATTEMPTS; attempt++) {
       try {
         const response = await fetch(url, requestOptions)
+        finalStatusCode = response.status
+        
+        // Calculate response size
+        const contentLength = response.headers.get('content-length')
+        if (contentLength) {
+          responseSize = parseInt(contentLength)
+        }
         
         if (!response.ok) {
           const errorData = await this.parseErrorResponse(response)
@@ -58,6 +77,24 @@ class DapperClient {
         }
 
         const data = await response.json()
+        
+        // Record successful API call performance
+        const responseTime = performance.now() - startTime
+        await performanceCollector.recordAPIMetric({
+          endpoint: `DapperCore${endpoint}`,
+          method: method as any,
+          statusCode: finalStatusCode,
+          responseTime,
+          requestSize,
+          responseSize,
+          tags: {
+            external_api: 'DapperCore',
+            api_type: 'external',
+            attempt: attempt.toString(),
+            success: 'true'
+          }
+        })
+        
         return data as T
       } catch (error) {
         lastError = error as Error
@@ -66,6 +103,24 @@ class DapperClient {
         if (error instanceof DapperAPIError) {
           if (error.statusCode && error.statusCode >= 400 && error.statusCode < 500) {
             if (error.type !== 'RATE_LIMIT_EXCEEDED') {
+              // Record failed API call
+              const responseTime = performance.now() - startTime
+              await performanceCollector.recordAPIMetric({
+                endpoint: `DapperCore${endpoint}`,
+                method: method as any,
+                statusCode: error.statusCode,
+                responseTime,
+                requestSize,
+                responseSize,
+                tags: {
+                  external_api: 'DapperCore',
+                  api_type: 'external',
+                  attempt: attempt.toString(),
+                  success: 'false',
+                  error: error.message,
+                  error_type: error.type
+                }
+              })
               throw error
             }
           }
@@ -78,6 +133,25 @@ class DapperClient {
         }
       }
     }
+
+    // Record final failed attempt
+    const responseTime = performance.now() - startTime
+    await performanceCollector.recordAPIMetric({
+      endpoint: `DapperCore${endpoint}`,
+      method: method as any,
+      statusCode: finalStatusCode || 500,
+      responseTime,
+      requestSize,
+      responseSize,
+      tags: {
+        external_api: 'DapperCore',
+        api_type: 'external',
+        attempt: DAPPER_RETRY_ATTEMPTS.toString(),
+        success: 'false',
+        error: lastError?.message || 'Unknown error',
+        exhausted_retries: 'true'
+      }
+    })
 
     throw lastError || new Error('Request failed after all retry attempts')
   }
@@ -173,6 +247,12 @@ class DapperClient {
   async getEvents(cursor?: string): Promise<DapperEventsResponse> {
     const params = cursor ? `?cursor=${cursor}` : ''
     return this.makeRequest<DapperEventsResponse>(`${DAPPER_ENDPOINTS.EVENTS}${params}`)
+  }
+
+  // Get Marketplace Listings
+  async getMarketplaceListings(queryParams?: string): Promise<DapperMarketplaceListingsResponse> {
+    const params = queryParams ? `?${queryParams}` : ''
+    return this.makeRequest<DapperMarketplaceListingsResponse>(`${DAPPER_ENDPOINTS.MARKETPLACE}${params}`)
   }
 }
 

@@ -71,6 +71,31 @@ export interface DapperEventsResponse {
   cursor?: string
 }
 
+export interface DapperMarketplaceListingsResponse {
+  listings: Array<{
+    listing_id: string
+    nft_id: string
+    price: number
+    currency: 'FLOW'
+    seller: string
+    status: 'active' | 'sold' | 'cancelled'
+    created_at: string
+    nft_metadata?: {
+      name: string
+      description: string
+      image: string
+      metadata_url: string
+      collection_id: string
+      creator: string
+    }
+  }>
+  pagination: {
+    cursor?: string
+    has_more: boolean
+    total_count?: number
+  }
+}
+
 // Error Types
 export enum DapperErrorType {
   AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',

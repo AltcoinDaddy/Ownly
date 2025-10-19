@@ -11,6 +11,8 @@ import {
   type OwnlyNFTMetadata 
 } from '@/lib/flow/ipfs'
 import { OWNLY_COLLECTION_ID } from '@/lib/flow/config'
+import { ErrorHandler, ErrorFactory, ErrorLogger } from '@/lib/errors'
+import { trackAPIPerformance, measureOperation, trackExternalAPICall } from '@/lib/performance/middleware'
 
 // Request body interface for minting
 interface MintRequestBody {
@@ -63,26 +65,32 @@ function base64ToFile(base64Data: string, fileName: string, fileType: string): F
   return new File([byteArray], fileName, { type: fileType })
 }
 
-export async function POST(request: NextRequest) {
-  try {
+export const POST = trackAPIPerformance(async function POST(request: NextRequest) {
+  return ErrorHandler.handleAsync(async () => {
     const body: MintRequestBody = await request.json()
     const { recipient } = body
 
     // Validate recipient address
     if (!recipient) {
-      return NextResponse.json({
-        success: false,
-        error: 'Recipient address is required',
-        type: 'VALIDATION_ERROR'
-      } as MintResponse, { status: 400 })
+      throw ErrorFactory.createError(
+        'MISSING_REQUIRED_FIELD' as any,
+        'VALIDATION' as any,
+        'MEDIUM' as any,
+        'Recipient address is required',
+        'Please provide a recipient address',
+        {
+          context: { field: 'recipient' },
+          actionable: true,
+          suggestedActions: ['Enter a valid Flow address']
+        }
+      )
     }
 
     if (!validateFlowAddress(recipient)) {
-      return NextResponse.json({
-        success: false,
-        error: 'Invalid recipient Flow address format. Expected format: 0x followed by 16 hexadecimal characters',
-        type: 'VALIDATION_ERROR'
-      } as MintResponse, { status: 400 })
+      throw ErrorFactory.invalidAddress(recipient, { 
+        endpoint: '/api/nft/mint',
+        operation: 'mint'
+      })
     }
 
     let metadata_url: string
@@ -94,11 +102,18 @@ export async function POST(request: NextRequest) {
       
       // Validate metadata URL format
       if (!metadata_url.startsWith('https://') && !metadata_url.startsWith('ipfs://')) {
-        return NextResponse.json({
-          success: false,
-          error: 'Invalid metadata URL format. Must be HTTPS or IPFS URL',
-          type: 'VALIDATION_ERROR'
-        } as MintResponse, { status: 400 })
+        throw ErrorFactory.createError(
+          'INVALID_METADATA' as any,
+          'VALIDATION' as any,
+          'MEDIUM' as any,
+          'Invalid metadata URL format',
+          'Metadata URL must be a valid HTTPS or IPFS URL',
+          {
+            context: { metadata_url, endpoint: '/api/nft/mint' },
+            actionable: true,
+            suggestedActions: ['Use a valid HTTPS or IPFS URL for metadata']
+          }
+        )
       }
     } 
     // New flow: Upload to IPFS with full metadata
@@ -117,22 +132,38 @@ export async function POST(request: NextRequest) {
       })
 
       if (metadataValidation.length > 0) {
-        return NextResponse.json({
-          success: false,
-          error: `Metadata validation failed: ${metadataValidation.map(e => e.message).join(', ')}`,
-          type: 'VALIDATION_ERROR',
-          details: metadataValidation
-        } as MintResponse, { status: 400 })
+        throw ErrorFactory.createError(
+          'INVALID_METADATA' as any,
+          'VALIDATION' as any,
+          'MEDIUM' as any,
+          `Metadata validation failed: ${metadataValidation.map(e => e.message).join(', ')}`,
+          'Please check your NFT metadata and fix the validation errors',
+          {
+            context: { 
+              validationErrors: metadataValidation,
+              endpoint: '/api/nft/mint'
+            },
+            actionable: true,
+            suggestedActions: metadataValidation.map(e => `Fix: ${e.message}`)
+          }
+        )
       }
 
       try {
         // Convert base64 to File
         if (!file_name || !file_type) {
-          return NextResponse.json({
-            success: false,
-            error: 'File name and type are required when uploading file data',
-            type: 'VALIDATION_ERROR'
-          } as MintResponse, { status: 400 })
+          throw ErrorFactory.createError(
+            'MISSING_REQUIRED_FIELD' as any,
+            'VALIDATION' as any,
+            'MEDIUM' as any,
+            'File name and type are required when uploading file data',
+            'Please provide both file name and file type',
+            {
+              context: { file_name, file_type, endpoint: '/api/nft/mint' },
+              actionable: true,
+              suggestedActions: ['Include file_name and file_type in your request']
+            }
+          )
         }
 
         const file = base64ToFile(file_data, file_name, file_type)
@@ -151,36 +182,67 @@ export async function POST(request: NextRequest) {
           external_url
         })
 
-        // Upload to IPFS
+        // Upload to IPFS with performance tracking
         console.log('[MINT API] Uploading metadata to IPFS...')
-        const ipfsResult = await uploadToIPFS(metadata)
+        const ipfsResult = await measureOperation('ipfs_upload', async () => {
+          return uploadToIPFS(metadata)
+        }, { file_type: file_type, file_size: file.size.toString() })
+        
         metadata_url = ipfsResult.metadataUrl
         image_url = ipfsResult.imageUrl
 
         console.log('[MINT API] IPFS upload successful:', { metadata_url, image_url })
       } catch (ipfsError) {
         console.error('[MINT API] IPFS upload failed:', ipfsError)
-        return NextResponse.json({
-          success: false,
-          error: `IPFS upload failed: ${ipfsError instanceof Error ? ipfsError.message : 'Unknown error'}`,
-          type: 'IPFS_ERROR'
-        } as MintResponse, { status: 500 })
+        throw ErrorFactory.ipfsUploadFailed(
+          ipfsError instanceof Error ? ipfsError : new Error('Unknown IPFS error'),
+          {
+            endpoint: '/api/nft/mint',
+            operation: 'ipfs_upload',
+            file_name,
+            file_type
+          }
+        )
       }
     } else {
-      return NextResponse.json({
-        success: false,
-        error: 'Either metadata_url or complete metadata (name, description, category, file_data) must be provided',
-        type: 'VALIDATION_ERROR'
-      } as MintResponse, { status: 400 })
+      throw ErrorFactory.createError(
+        'MISSING_REQUIRED_FIELD' as any,
+        'VALIDATION' as any,
+        'MEDIUM' as any,
+        'Either metadata_url or complete metadata must be provided',
+        'Please provide either a metadata_url or complete metadata (name, description, category, file_data)',
+        {
+          context: { endpoint: '/api/nft/mint' },
+          actionable: true,
+          suggestedActions: [
+            'Provide a metadata_url for existing metadata',
+            'Or provide name, description, category, and file_data for new metadata'
+          ]
+        }
+      )
     }
 
-    // Call Dapper Core API to mint NFT
+    // Call Dapper Core API to mint NFT with performance tracking
     console.log('[MINT API] Calling Dapper Core API...')
-    const mintResponse = await dapperClient.mintNFT({
-      metadata_url,
-      recipient,
-      collection_id: DAPPER_COLLECTION_ID
-    })
+    const mintResponse = await trackExternalAPICall(
+      'DapperCore',
+      '/v1/nft/mint',
+      'POST',
+      () => ErrorHandler.handleApiCall(
+        () => dapperClient.mintNFT({
+          metadata_url,
+          recipient,
+          collection_id: DAPPER_COLLECTION_ID
+        }),
+        '/v1/nft/mint',
+        {
+          endpoint: '/api/nft/mint',
+          operation: 'mint',
+          recipient,
+          metadata_url
+        }
+      )
+    )
 
     console.log('[MINT API] Dapper Core API response:', mintResponse)
 
@@ -195,47 +257,36 @@ export async function POST(request: NextRequest) {
       created_at: mintResponse.created_at
     } as MintResponse)
 
-  } catch (error) {
-    console.error('[MINT API] Error:', error)
-
-    // Handle Dapper API errors
-    if (error instanceof DapperAPIError) {
-      let errorMessage = error.message
-      let errorType = error.type
-
-      // Provide more user-friendly error messages
-      switch (error.type) {
-        case DapperErrorType.AUTHENTICATION_ERROR:
-          errorMessage = 'Authentication failed. Please check API configuration.'
-          break
-        case DapperErrorType.INSUFFICIENT_FUNDS:
-          errorMessage = 'Insufficient funds to complete the minting transaction.'
-          break
-        case DapperErrorType.RATE_LIMIT_EXCEEDED:
-          errorMessage = 'Rate limit exceeded. Please try again later.'
-          break
-        case DapperErrorType.SERVER_ERROR:
-          errorMessage = 'Dapper Core API is temporarily unavailable. Please try again later.'
-          break
-        case DapperErrorType.NETWORK_ERROR:
-          errorMessage = 'Network error occurred. Please check your connection and try again.'
-          break
-      }
-
+  }, {
+    context: {
+      endpoint: '/api/nft/mint',
+      operation: 'mint_nft',
+      recipient: body?.recipient
+    },
+    logError: true,
+    showToUser: false // API errors should be handled by the client
+  }).catch((error) => {
+    // Convert OwnlyError to API response
+    if (error.code) {
       return NextResponse.json({
         success: false,
-        error: errorMessage,
-        type: errorType,
-        details: error.details,
+        error: error.userMessage,
+        type: error.code,
+        details: error.context,
+        retryable: error.retryable,
         ...(error.retryAfter && { retry_after: error.retryAfter })
-      } as MintResponse, { status: error.statusCode || 500 })
+      } as MintResponse, { 
+        status: error.severity === 'CRITICAL' ? 500 : 
+               error.severity === 'HIGH' ? 400 : 
+               error.category === 'VALIDATION' ? 400 : 500 
+      })
     }
 
-    // Handle other errors
+    // Fallback for unexpected errors
     return NextResponse.json({
       success: false,
       error: 'Internal server error occurred during minting',
-      type: 'INTERNAL_ERROR'
+      type: 'SYSTEM_ERROR'
     } as MintResponse, { status: 500 })
-  }
-}
+  })
+})
