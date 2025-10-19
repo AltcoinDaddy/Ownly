@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useMarketplaceIntegration } from "@/hooks/use-marketplace-integration"
 import type { EnrichedNFT } from "@/lib/flow/collection-service"
 import { 
   Tag, 
@@ -27,20 +28,23 @@ interface ListForSaleModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onListForSale?: (nft: EnrichedNFT, price: number, currency: string, duration?: number) => Promise<void>
+  onListingComplete?: () => void
 }
 
 export function ListForSaleModal({
   nft,
   open,
   onOpenChange,
-  onListForSale
+  onListForSale,
+  onListingComplete
 }: ListForSaleModalProps) {
   const [price, setPrice] = useState("")
   const [currency, setCurrency] = useState("FLOW")
   const [duration, setDuration] = useState("30") // days
-  const [isListing, setIsListing] = useState(false)
   const [priceError, setPriceError] = useState("")
   const [showConfirmation, setShowConfirmation] = useState(false)
+  
+  const { listNFTForSale, isLoading: isListing, error } = useMarketplaceIntegration()
 
   if (!nft) return null
 
@@ -99,24 +103,26 @@ export function ListForSaleModal({
   }
 
   const handleConfirmListing = async () => {
-    if (!onListForSale) {
-      toast.error("List for sale function not available")
-      return
-    }
+    if (!nft) return
 
-    setIsListing(true)
     try {
       const numPrice = parseFloat(price)
       const numDuration = parseInt(duration)
-      await onListForSale(nft, numPrice, currency, numDuration)
-      toast.success("NFT listed for sale successfully!")
+      
+      // Use the integrated marketplace hook
+      await listNFTForSale(nft.id, numPrice, currency, numDuration)
+      
+      // Call completion callback if provided
+      if (onListingComplete) {
+        onListingComplete()
+      }
+      
+      // Close modal and reset
       onOpenChange(false)
       resetModal()
     } catch (error) {
+      // Error handling is done in the hook
       console.error("Listing failed:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to list NFT for sale")
-    } finally {
-      setIsListing(false)
     }
   }
 
@@ -126,7 +132,6 @@ export function ListForSaleModal({
     setDuration("30")
     setPriceError("")
     setShowConfirmation(false)
-    setIsListing(false)
   }
 
   const handleClose = () => {
@@ -248,6 +253,16 @@ export function ListForSaleModal({
                     <span>{(parseFloat(price) - estimatedFees).toFixed(6)} {currency}</span>
                   </div>
                 </div>
+              )}
+
+              {/* Error Display */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    {error}
+                  </AlertDescription>
+                </Alert>
               )}
 
               <Alert>

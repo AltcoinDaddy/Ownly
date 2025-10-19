@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useNFTTransfer } from "@/hooks/use-nft-transfer"
 import type { EnrichedNFT } from "@/lib/flow/collection-service"
 import { 
   Send, 
@@ -27,18 +28,21 @@ interface TransferNFTModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onTransfer?: (nft: EnrichedNFT, recipientAddress: string) => Promise<void>
+  onTransferComplete?: () => void
 }
 
 export function TransferNFTModal({
   nft,
   open,
   onOpenChange,
-  onTransfer
+  onTransfer,
+  onTransferComplete
 }: TransferNFTModalProps) {
   const [recipientAddress, setRecipientAddress] = useState("")
-  const [isTransferring, setIsTransferring] = useState(false)
   const [addressError, setAddressError] = useState("")
   const [showConfirmation, setShowConfirmation] = useState(false)
+  
+  const { transferNFT, isLoading: isTransferring, error } = useNFTTransfer()
 
   if (!nft) return null
 
@@ -80,22 +84,27 @@ export function TransferNFTModal({
   }
 
   const handleConfirmTransfer = async () => {
-    if (!onTransfer) {
-      toast.error("Transfer function not available")
-      return
-    }
+    if (!nft) return
 
-    setIsTransferring(true)
     try {
-      await onTransfer(nft, recipientAddress.trim())
-      toast.success("NFT transfer initiated successfully!")
+      // Use the provided transfer function or fallback to hook
+      if (onTransfer) {
+        await onTransfer(nft, recipientAddress.trim())
+      } else {
+        await transferNFT(nft, recipientAddress.trim())
+      }
+      
+      // Call completion callback if provided
+      if (onTransferComplete) {
+        onTransferComplete()
+      }
+      
+      // Close modal and reset
       onOpenChange(false)
       resetModal()
     } catch (error) {
+      // Error handling is done in the hook or parent component
       console.error("Transfer failed:", error)
-      toast.error(error instanceof Error ? error.message : "Transfer failed")
-    } finally {
-      setIsTransferring(false)
     }
   }
 
@@ -103,7 +112,6 @@ export function TransferNFTModal({
     setRecipientAddress("")
     setAddressError("")
     setShowConfirmation(false)
-    setIsTransferring(false)
   }
 
   const handleClose = () => {
@@ -185,6 +193,16 @@ export function TransferNFTModal({
                   <p className="text-sm text-destructive">{addressError}</p>
                 )}
               </div>
+
+              {/* Error Display */}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
