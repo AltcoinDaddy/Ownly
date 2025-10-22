@@ -27,7 +27,7 @@ This directory contains comprehensive end-to-end tests for the Ownly NFT marketp
 
 1. **Install dependencies:**
    ```bash
-   pnpm install
+   npm install
    ```
 
 2. **Install Playwright browsers:**
@@ -45,19 +45,19 @@ This directory contains comprehensive end-to-end tests for the Ownly NFT marketp
 
 ```bash
 # Run all E2E tests
-pnpm test:e2e
+npm run test:e2e
 
 # Run tests with UI mode (interactive)
-pnpm test:e2e:ui
+npm run test:e2e:ui
 
 # Run tests in headed mode (see browser)
-pnpm test:e2e:headed
+npm run test:e2e:headed
 
 # Debug specific test
-pnpm test:e2e:debug
+npm run test:e2e:debug
 
 # View test report
-pnpm test:e2e:report
+npm run test:e2e:report
 ```
 
 ### Running Specific Test Files
@@ -187,10 +187,10 @@ const TEST_NFT_METADATA = {
 ### Visual Debugging
 ```bash
 # Run with browser visible
-pnpm test:e2e:headed
+npm run test:e2e:headed
 
 # Run in debug mode (step through)
-pnpm test:e2e:debug
+npm run test:e2e:debug
 ```
 
 ### Screenshots and Videos

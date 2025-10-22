@@ -140,7 +140,9 @@ export default function MarketplacePage() {
   // Handle view details
   const handleViewDetails = (listing: MarketplaceListing) => {
     // Navigate to NFT details page or show details modal
-    window.open(`/nft/${listing.nft_id}`, '_blank')
+    if (typeof window !== 'undefined') {
+      window.open(`/nft/${listing.nft_id}`, '_blank')
+    }
   }
 
   // Handle purchase transaction

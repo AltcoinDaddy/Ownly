@@ -13,6 +13,7 @@ import {
 } from './types'
 import { MemoryStorage } from './storage/memory'
 import { generateId } from '@/lib/utils'
+import { safeRandom } from '@/lib/hydration/safe-random'
 
 // Default performance configuration
 const DEFAULT_CONFIG: PerformanceConfig = {
@@ -66,7 +67,7 @@ export class PerformanceCollector {
   // Check if we should collect this metric based on sample rate
   private shouldCollect(): boolean {
     if (!this.config.enabled) return false
-    return Math.random() < this.config.sampleRate
+    return safeRandom() < this.config.sampleRate
   }
 
   // Record API performance metric

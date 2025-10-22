@@ -100,19 +100,19 @@ const TEST_WALLETS = {
 #### Available Commands
 ```bash
 # Run all E2E tests
-pnpm test:e2e
+npm run test:e2e
 
 # Interactive UI mode
-pnpm test:e2e:ui
+npm run test:e2e:ui
 
 # Headed mode (visible browser)
-pnpm test:e2e:headed
+npm run test:e2e:headed
 
 # Debug mode (step through)
-pnpm test:e2e:debug
+npm run test:e2e:debug
 
 # View test reports
-pnpm test:e2e:report
+npm run test:e2e:report
 ```
 
 #### Browser Coverage

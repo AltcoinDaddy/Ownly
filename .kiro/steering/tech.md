@@ -33,15 +33,15 @@
 
 ### Development
 ```bash
-pnpm dev          # Start development server
-pnpm build        # Build for production
-pnpm start        # Start production server
-pnpm lint         # Run ESLint
+npm run dev       # Start development server
+npm run build     # Build for production
+npm start         # Start production server
+npm run lint      # Run ESLint
 ```
 
 ### Package Management
-- Uses **pnpm** as package manager
-- Lock file: `pnpm-lock.yaml`
+- Uses **npm** as package manager
+- Lock file: `package-lock.json`
 
 ## Configuration Notes
 - TypeScript strict mode enabled

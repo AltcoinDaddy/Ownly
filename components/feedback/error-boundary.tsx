@@ -140,7 +140,11 @@ function DefaultErrorFallback({ error, resetError, errorInfo }: ErrorFallbackPro
           </Button>
           
           <Button 
-            onClick={() => window.location.href = '/'} 
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.location.href = '/'
+              }
+            }} 
             variant="default" 
             className="flex-1"
           >
@@ -152,7 +156,11 @@ function DefaultErrorFallback({ error, resetError, errorInfo }: ErrorFallbackPro
         {error.helpUrl && (
           <CardFooter className="pt-0">
             <Button 
-              onClick={() => window.open(error.helpUrl, '_blank')}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.open(error.helpUrl, '_blank')
+                }
+              }}
               variant="ghost" 
               className="w-full"
             >
@@ -200,7 +208,11 @@ export function NFTErrorBoundary({ children }: { children: React.ReactNode }) {
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
             </Button>
-            <Button onClick={() => window.location.reload()}>
+            <Button onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.location.reload()
+              }
+            }}>
               Refresh Page
             </Button>
           </div>

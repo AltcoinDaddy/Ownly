@@ -7,17 +7,32 @@ export function getDapperConfig(): DapperConfig {
   const apiKey = process.env.DAPPER_API_KEY
   const environment = (process.env.NEXT_PUBLIC_FLOW_NETWORK || 'testnet') as 'testnet' | 'mainnet'
 
+  // Check if we're running on the client side
+  const isClientSide = typeof window !== 'undefined'
+  
   if (!baseUrl) {
-    throw new Error('DAPPER_API_URL environment variable is required')
+    if (isClientSide) {
+      // On client side, use a default URL if not provided
+      console.warn('DAPPER_API_URL not available on client side, using default')
+    } else {
+      throw new Error('DAPPER_API_URL environment variable is required')
+    }
   }
 
   if (!apiKey) {
-    throw new Error('DAPPER_API_KEY environment variable is required')
+    if (isClientSide) {
+      // On client side, use a placeholder key
+      console.warn('DAPPER_API_KEY not available on client side, using placeholder')
+    } else {
+      throw new Error('DAPPER_API_KEY environment variable is required')
+    }
   }
 
   return {
-    baseUrl: baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl,
-    apiKey,
+    baseUrl: (baseUrl || 'https://api.dapper.com').endsWith('/') 
+      ? (baseUrl || 'https://api.dapper.com').slice(0, -1) 
+      : (baseUrl || 'https://api.dapper.com'),
+    apiKey: apiKey || 'client-side-placeholder',
     environment
   }
 }

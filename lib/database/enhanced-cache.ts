@@ -10,13 +10,14 @@ import type { DapperMarketplaceListingsResponse } from '../dapper/types'
  */
 export class EnhancedCacheService {
   private initialized = false
+  private isClientSide = typeof window !== 'undefined'
 
   // Initialize the enhanced cache system
   async initialize(): Promise<void> {
     if (this.initialized) return
 
     try {
-      // Start background sync processes
+      // Start background sync processes (server-side only)
       await syncService.startBackgroundSync()
       
       this.initialized = true
@@ -24,6 +25,14 @@ export class EnhancedCacheService {
       
     } catch (error) {
       console.error('Error initializing enhanced cache service:', error)
+      
+      // On client side, don't throw error to prevent app crash
+      if (this.isClientSide) {
+        console.log('Continuing without cache services on client side')
+        this.initialized = true
+        return
+      }
+      
       throw error
     }
   }

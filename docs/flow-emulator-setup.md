@@ -10,7 +10,7 @@ The Flow emulator provides a local blockchain environment for testing smart cont
 
 - Flow CLI installed (v2.7.3 or later)
 - Node.js 18+ 
-- pnpm package manager
+- npm package manager
 
 ## Installation
 

@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { SafeNavigator } from "@/lib/hydration"
 
 interface EnhancedNFTCardProps {
   nft: EnrichedNFT
@@ -41,23 +42,29 @@ export function EnhancedNFTCard({
   const [imageError, setImageError] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const copyTokenId = () => {
-    navigator.clipboard.writeText(nft.id)
-    setCopied(true)
-    toast.success("Token ID copied to clipboard")
-    setTimeout(() => setCopied(false), 2000)
+  const copyTokenId = async () => {
+    const success = await SafeNavigator.copyToClipboard(nft.id)
+    if (success) {
+      setCopied(true)
+      toast.success("Token ID copied to clipboard")
+      setTimeout(() => setCopied(false), 2000)
+    } else {
+      toast.error("Failed to copy token ID")
+    }
   }
 
-  const shareNFT = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: nft.name,
-        text: nft.description,
-        url: `/nft/${nft.id}`
-      })
-    } else {
-      navigator.clipboard.writeText(`${window.location.origin}/nft/${nft.id}`)
+  const shareNFT = async () => {
+    const shareData = {
+      title: nft.name,
+      text: nft.description,
+      url: `${typeof window !== 'undefined' ? window.location.origin : ''}/nft/${nft.id}`
+    }
+    
+    const success = await SafeNavigator.share(shareData)
+    if (success && !SafeNavigator.isShareSupported) {
       toast.success("Link copied to clipboard")
+    } else if (!success) {
+      toast.error("Failed to share NFT")
     }
   }
 
@@ -70,7 +77,13 @@ export function EnhancedNFTCard({
             {/* Thumbnail */}
             <div 
               className="flex-shrink-0 cursor-pointer"
-              onClick={() => onViewDetails ? onViewDetails(nft) : window.location.href = `/nft/${nft.id}`}
+              onClick={() => {
+                if (onViewDetails) {
+                  onViewDetails(nft)
+                } else if (typeof window !== 'undefined') {
+                  window.location.href = `/nft/${nft.id}`
+                }
+              }}
             >
               <div className="relative w-16 h-16 overflow-hidden rounded-lg bg-muted">
                 <Image
@@ -89,7 +102,13 @@ export function EnhancedNFTCard({
                 <div className="min-w-0 flex-1">
                   <h3 
                     className="font-semibold text-lg group-hover:text-muted-foreground transition-colors truncate cursor-pointer"
-                    onClick={() => onViewDetails ? onViewDetails(nft) : window.location.href = `/nft/${nft.id}`}
+                    onClick={() => {
+                      if (onViewDetails) {
+                        onViewDetails(nft)
+                      } else if (typeof window !== 'undefined') {
+                        window.location.href = `/nft/${nft.id}`
+                      }
+                    }}
                   >
                     {nft.name}
                   </h3>
@@ -170,7 +189,13 @@ export function EnhancedNFTCard({
         {/* Image */}
         <div 
           className="relative aspect-square overflow-hidden bg-muted cursor-pointer"
-          onClick={() => onViewDetails ? onViewDetails(nft) : window.location.href = `/nft/${nft.id}`}
+          onClick={() => {
+            if (onViewDetails) {
+              onViewDetails(nft)
+            } else if (typeof window !== 'undefined') {
+              window.location.href = `/nft/${nft.id}`
+            }
+          }}
         >
           <Image
             src={!imageError ? (nft.image || nft.thumbnail || "/placeholder.svg") : "/placeholder.svg"}
@@ -236,7 +261,13 @@ export function EnhancedNFTCard({
           <div>
             <h3 
               className={`font-bold ${isSmallGrid ? 'text-sm' : 'text-lg'} mb-1 group-hover:text-muted-foreground transition-colors line-clamp-1 cursor-pointer`}
-              onClick={() => onViewDetails ? onViewDetails(nft) : window.location.href = `/nft/${nft.id}`}
+              onClick={() => {
+                if (onViewDetails) {
+                  onViewDetails(nft)
+                } else if (typeof window !== 'undefined') {
+                  window.location.href = `/nft/${nft.id}`
+                }
+              }}
             >
               {nft.name}
             </h3>

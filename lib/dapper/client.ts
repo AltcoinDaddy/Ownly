@@ -26,11 +26,17 @@ import { performanceCollector } from '@/lib/performance/collector'
 
 class DapperClient {
   private config = getDapperConfig()
+  private isClientSide = typeof window !== 'undefined'
 
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    // Prevent client-side API calls to Dapper
+    if (this.isClientSide) {
+      throw new Error('Dapper API calls must be made from server-side only. Use API routes instead.')
+    }
+
     const startTime = performance.now()
     const url = `${this.config.baseUrl}${endpoint}`
     const method = options.method || 'GET'

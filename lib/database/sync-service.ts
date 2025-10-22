@@ -7,13 +7,13 @@ import {
   COLLECTIONS
 } from './schemas'
 import * as fcl from '@onflow/fcl'
-import { dapperService } from '../dapper/service'
 import type { NFT, User } from '../types'
 
 export class SyncService {
   private db: Db | null = null
   private syncIntervals: Map<string, NodeJS.Timeout> = new Map()
   private isRunning = false
+  private isClientSide = typeof window !== 'undefined'
 
   private async getDb(): Promise<Db> {
     if (!this.db) {
@@ -24,6 +24,12 @@ export class SyncService {
 
   // Start background sync processes
   async startBackgroundSync(): Promise<void> {
+    // Don't start sync processes on client side
+    if (this.isClientSide) {
+      console.log('Skipping background sync on client side')
+      return
+    }
+
     if (this.isRunning) {
       console.log('Background sync already running')
       return
@@ -234,6 +240,9 @@ export class SyncService {
   // Sync marketplace data
   private async syncMarketplaceData(): Promise<void> {
     try {
+      // Dynamically import dapper service to avoid client-side issues
+      const { dapperService } = await import('../dapper/service')
+      
       // Fetch fresh marketplace listings
       const listings = await dapperService.getMarketplaceListings()
       

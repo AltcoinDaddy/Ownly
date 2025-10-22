@@ -1,6 +1,7 @@
 // Error Logging and Monitoring
 
 import { OwnlyError, ErrorSeverity, ErrorContext } from './types'
+import { safeDateNow, safeGenerateId } from '@/lib/hydration/safe-random'
 
 export interface LogEntry {
   id: string
@@ -21,11 +22,11 @@ export class ErrorLogger {
   private static sessionId = this.generateSessionId()
 
   private static generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    return `session_${safeDateNow()}_${safeGenerateId('session').split('-')[1]}`
   }
 
   private static generateLogId(): string {
-    return `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    return `log_${safeDateNow()}_${safeGenerateId('log').split('-')[1]}`
   }
 
   static logError(error: OwnlyError, additionalContext?: ErrorContext): void {

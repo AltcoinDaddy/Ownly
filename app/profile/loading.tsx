@@ -1,3 +1,5 @@
+import { LoadingFallback } from "@/components/loading-fallback"
+
 export default function Loading() {
-  return null
+  return <LoadingFallback variant="page" />
 }

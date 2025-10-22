@@ -131,7 +131,11 @@ export function ErrorDisplay({
         
         {error.helpUrl && (
           <Button 
-            onClick={() => window.open(error.helpUrl, '_blank')}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.open(error.helpUrl, '_blank')
+              }
+            }}
             variant="outline"
             className="flex-1"
           >

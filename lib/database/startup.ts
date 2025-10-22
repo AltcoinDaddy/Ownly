@@ -13,6 +13,15 @@ export async function initializeOnStartup(): Promise<void> {
     return
   }
 
+  // Check if we're on client side
+  const isClientSide = typeof window !== 'undefined'
+  
+  if (isClientSide) {
+    console.log('Skipping database initialization on client side')
+    initialized = true
+    return
+  }
+
   try {
     console.log('Initializing database and cache services...')
     

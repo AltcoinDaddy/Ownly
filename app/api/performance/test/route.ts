@@ -56,11 +56,13 @@ export const POST = trackAPIPerformance(async (request: NextRequest) => {
   try {
     const body = await request.json()
     
-    // Simulate blockchain operation
+    // Simulate blockchain operation with deterministic response time
+    const baseResponseTime = 500
+    const variableTime = (body?.seed || 1) % 1000 // Use request data for variation
     await performanceCollector.recordBlockchainMetric({
       operation: 'query',
       network: 'testnet',
-      responseTime: Math.random() * 1000 + 500, // Random time between 500-1500ms
+      responseTime: baseResponseTime + variableTime, // Deterministic time between 500-1500ms
       success: true,
       tags: {
         test: 'true',

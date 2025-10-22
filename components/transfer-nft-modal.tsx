@@ -21,6 +21,7 @@ import {
   ExternalLink
 } from "lucide-react"
 import { toast } from "sonner"
+import { SafeNavigator } from "@/lib/hydration"
 import Image from "next/image"
 
 interface TransferNFTModalProps {
@@ -121,9 +122,13 @@ export function TransferNFTModal({
     }
   }
 
-  const copyAddress = () => {
-    navigator.clipboard.writeText(recipientAddress)
-    toast.success("Address copied to clipboard")
+  const copyAddress = async () => {
+    const success = await SafeNavigator.copyToClipboard(recipientAddress)
+    if (success) {
+      toast.success("Address copied to clipboard")
+    } else {
+      toast.error("Failed to copy address")
+    }
   }
 
   return (

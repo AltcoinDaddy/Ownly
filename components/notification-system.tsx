@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { useWallet } from "@/lib/wallet-context"
 import { useBlockchainEvents } from "@/lib/flow/hooks"
 import { BlockchainEvent } from "@/lib/flow/events"
 import { CheckCircle, ArrowRightLeft, ShoppingCart, Tag, Zap } from "lucide-react"
+import { SafeLocalStorage } from "@/lib/hydration/safe-local-storage"
+import { useHydrated } from "@/lib/hydration/use-hydrated"
 
 interface NotificationSystemProps {
   enableToasts?: boolean
@@ -17,11 +19,16 @@ export function NotificationSystem({
   enableBrowserNotifications = false 
 }: NotificationSystemProps) {
   const { address } = useWallet()
+  const { preferences, isLoaded } = useNotificationPreferences()
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
+
+  // Use preferences if loaded, otherwise fall back to props
+  const shouldShowToasts = isLoaded ? preferences.enableToasts : enableToasts
+  const shouldShowBrowserNotifications = isLoaded ? preferences.enableBrowserNotifications : enableBrowserNotifications
 
   // Request browser notification permission
   useEffect(() => {
-    if (enableBrowserNotifications && 'Notification' in window) {
+    if (shouldShowBrowserNotifications && 'Notification' in window) {
       setNotificationPermission(Notification.permission)
       
       if (Notification.permission === 'default') {
@@ -30,14 +37,14 @@ export function NotificationSystem({
         })
       }
     }
-  }, [enableBrowserNotifications])
+  }, [shouldShowBrowserNotifications])
 
   // Listen to blockchain events and show notifications
   useBlockchainEvents({
     onMint: (event: BlockchainEvent) => {
       const { nftId, recipient, creator } = event.data
       
-      if (enableToasts) {
+      if (shouldShowToasts) {
         if (address === recipient) {
           // User minted an NFT
           toast.success("NFT Minted Successfully!", {
@@ -46,7 +53,11 @@ export function NotificationSystem({
             duration: 5000,
             action: {
               label: "View",
-              onClick: () => window.location.href = `/nft/${nftId}`
+              onClick: () => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/nft/${nftId}`
+                }
+              }
             }
           })
         } else {
@@ -60,7 +71,7 @@ export function NotificationSystem({
       }
 
       // Browser notification for user's own mints
-      if (enableBrowserNotifications && notificationPermission === 'granted' && address === recipient) {
+      if (shouldShowBrowserNotifications && notificationPermission === 'granted' && address === recipient) {
         new Notification("NFT Minted!", {
           body: `Your NFT #${nftId} has been successfully minted`,
           icon: "/placeholder-logo.png",
@@ -72,7 +83,7 @@ export function NotificationSystem({
     onTransfer: (event: BlockchainEvent) => {
       const { nftId, from, to } = event.data
       
-      if (enableToasts) {
+      if (shouldShowToasts) {
         if (address === to) {
           // User received an NFT
           toast.success("NFT Received!", {
@@ -81,7 +92,11 @@ export function NotificationSystem({
             duration: 5000,
             action: {
               label: "View",
-              onClick: () => window.location.href = `/profile`
+              onClick: () => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/profile`
+                }
+              }
             }
           })
         } else if (address === from) {
@@ -102,7 +117,7 @@ export function NotificationSystem({
       }
 
       // Browser notification for user's transfers
-      if (enableBrowserNotifications && notificationPermission === 'granted') {
+      if (shouldShowBrowserNotifications && notificationPermission === 'granted') {
         if (address === to) {
           new Notification("NFT Received!", {
             body: `You received NFT #${nftId}`,
@@ -122,7 +137,7 @@ export function NotificationSystem({
     onSale: (event: BlockchainEvent) => {
       const { nftId, seller, buyer, price, currency } = event.data
       
-      if (enableToasts) {
+      if (shouldShowToasts) {
         if (address === seller) {
           // User sold an NFT
           toast.success("NFT Sold!", {
@@ -131,7 +146,11 @@ export function NotificationSystem({
             duration: 6000,
             action: {
               label: "View Transaction",
-              onClick: () => window.location.href = `/profile`
+              onClick: () => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/profile`
+                }
+              }
             }
           })
         } else if (address === buyer) {
@@ -142,7 +161,11 @@ export function NotificationSystem({
             duration: 6000,
             action: {
               label: "View NFT",
-              onClick: () => window.location.href = `/nft/${nftId}`
+              onClick: () => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/nft/${nftId}`
+                }
+              }
             }
           })
         } else {
@@ -156,7 +179,7 @@ export function NotificationSystem({
       }
 
       // Browser notification for user's sales/purchases
-      if (enableBrowserNotifications && notificationPermission === 'granted') {
+      if (shouldShowBrowserNotifications && notificationPermission === 'granted') {
         if (address === seller) {
           new Notification("NFT Sold!", {
             body: `Your NFT #${nftId} sold for ${price} ${currency}`,
@@ -176,7 +199,7 @@ export function NotificationSystem({
     onListing: (event: BlockchainEvent) => {
       const { nftId, seller, price, currency } = event.data
       
-      if (enableToasts) {
+      if (shouldShowToasts) {
         if (address === seller) {
           // User listed an NFT
           toast.success("NFT Listed for Sale!", {
@@ -185,7 +208,11 @@ export function NotificationSystem({
             duration: 5000,
             action: {
               label: "View Listing",
-              onClick: () => window.location.href = `/marketplace`
+              onClick: () => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/marketplace`
+                }
+              }
             }
           })
         } else {
@@ -196,14 +223,18 @@ export function NotificationSystem({
             duration: 3000,
             action: {
               label: "View Marketplace",
-              onClick: () => window.location.href = `/marketplace`
+              onClick: () => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/marketplace`
+                }
+              }
             }
           })
         }
       }
 
       // Browser notification for user's listings
-      if (enableBrowserNotifications && notificationPermission === 'granted' && address === seller) {
+      if (shouldShowBrowserNotifications && notificationPermission === 'granted' && address === seller) {
         new Notification("NFT Listed!", {
           body: `Your NFT #${nftId} is now listed for ${price} ${currency}`,
           icon: "/placeholder-logo.png",
@@ -219,45 +250,87 @@ export function NotificationSystem({
 
 // Hook to control notification preferences
 export function useNotificationPreferences() {
+  const { isHydrated } = useHydrated()
   const [preferences, setPreferences] = useState({
     enableToasts: true,
     enableBrowserNotifications: false,
     enableSounds: false
   })
+  const [isLoaded, setIsLoaded] = useState(false)
 
   const updatePreferences = (newPreferences: Partial<typeof preferences>) => {
-    setPreferences(prev => ({ ...prev, ...newPreferences }))
+    const updatedPreferences = { ...preferences, ...newPreferences }
+    setPreferences(updatedPreferences)
     
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('ownly-notification-preferences', JSON.stringify({
-        ...preferences,
-        ...newPreferences
-      }))
+    // Save to SafeLocalStorage only after hydration
+    if (isHydrated) {
+      try {
+        SafeLocalStorage.setItem('ownly-notification-preferences', JSON.stringify(updatedPreferences))
+      } catch (error) {
+        console.error('Failed to save notification preferences:', error)
+      }
     }
   }
 
-  // Load preferences from localStorage
+  // Load preferences from SafeLocalStorage only after hydration
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('ownly-notification-preferences')
+    if (!isHydrated || isLoaded) {
+      return
+    }
+
+    try {
+      const saved = SafeLocalStorage.getItem('ownly-notification-preferences')
       if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          setPreferences(parsed)
-        } catch (error) {
-          console.error('Failed to parse notification preferences:', error)
+        const parsed = JSON.parse(saved)
+        // Validate the parsed data has expected structure
+        if (parsed && typeof parsed === 'object') {
+          setPreferences(prev => ({
+            enableToasts: typeof parsed.enableToasts === 'boolean' ? parsed.enableToasts : prev.enableToasts,
+            enableBrowserNotifications: typeof parsed.enableBrowserNotifications === 'boolean' ? parsed.enableBrowserNotifications : prev.enableBrowserNotifications,
+            enableSounds: typeof parsed.enableSounds === 'boolean' ? parsed.enableSounds : prev.enableSounds
+          }))
         }
       }
+    } catch (error) {
+      console.error('Failed to parse notification preferences:', error)
+      // Fallback to default preferences on error
+    } finally {
+      setIsLoaded(true)
     }
-  }, [])
+  }, [isHydrated, isLoaded])
 
-  return { preferences, updatePreferences }
+  return { 
+    preferences, 
+    updatePreferences, 
+    isLoaded: isLoaded && isHydrated 
+  }
 }
 
 // Component for notification settings
 export function NotificationSettings() {
-  const { preferences, updatePreferences } = useNotificationPreferences()
+  const { preferences, updatePreferences, isLoaded } = useNotificationPreferences()
+
+  if (!isLoaded) {
+    return (
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Notification Settings</h3>
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse"></div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-40 animate-pulse"></div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-36 animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">

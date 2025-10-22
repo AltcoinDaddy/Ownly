@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { safeGenerateId } from "@/lib/hydration"
 import { useWallet } from "@/lib/wallet-context"
 import { useMarketplaceEvents } from "@/lib/flow/event-context"
 import { useBlockchainEvents } from "@/lib/flow/hooks"
@@ -76,7 +77,7 @@ export function EnhancedMarketplaceIntegration({
     )
 
     const activity: MarketplaceActivity = {
-      id: `${event.type}-${event.transactionId}-${Date.now()}`,
+      id: safeGenerateId(`${event.type}-${event.transactionId}`),
       type: event.type.includes('SALE') ? 'sale' : 'listing',
       nftId: event.data.nftId,
       price: parseFloat(event.data.price) || 0,
@@ -143,7 +144,11 @@ export function EnhancedMarketplaceIntegration({
           duration: 6000,
           action: {
             label: "View Profile",
-            onClick: () => window.location.href = `/profile`
+            onClick: () => {
+              if (typeof window !== 'undefined') {
+                window.location.href = `/profile`
+              }
+            }
           }
         })
       } else if (activity.buyer === address) {
@@ -152,7 +157,11 @@ export function EnhancedMarketplaceIntegration({
           duration: 6000,
           action: {
             label: "View NFT",
-            onClick: () => window.location.href = `/nft/${activity.nftId}`
+            onClick: () => {
+              if (typeof window !== 'undefined') {
+                window.location.href = `/nft/${activity.nftId}`
+              }
+            }
           }
         })
       } else {
@@ -168,7 +177,11 @@ export function EnhancedMarketplaceIntegration({
           duration: 5000,
           action: {
             label: "View Marketplace",
-            onClick: () => window.location.href = `/marketplace`
+            onClick: () => {
+              if (typeof window !== 'undefined') {
+                window.location.href = `/marketplace`
+              }
+            }
           }
         })
       } else {

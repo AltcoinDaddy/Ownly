@@ -2,170 +2,149 @@
 
 ## Overview
 
-The hydration mismatch errors are caused by several components that produce different output between server and client rendering. The primary issues identified are:
-
-1. **Dynamic date generation** in multiple components using `new Date()` and `Date.now()`
-2. **Random value generation** in UI components using `Math.random()`
-3. **localStorage access** in the WalletProvider during SSR
-4. **Browser-specific APIs** being called during server rendering
-
-This design addresses these issues through consistent data patterns, proper client-side guards, and SSR-safe implementations.
+The hydration fix addresses React hydration mismatch errors by implementing proper SSR/client-side rendering patterns, eliminating browser-specific API usage during SSR, and ensuring consistent rendering between server and client. The solution focuses on identifying and resolving all sources of hydration mismatches while maintaining application functionality.
 
 ## Architecture
 
-### Hydration-Safe Patterns
+### Hydration-Safe Component Pattern
+- **Client-Only Components**: Components that require browser APIs will be wrapped in client-only boundaries
+- **SSR-Safe State Management**: State initialization will be consistent between server and client
+- **Progressive Enhancement**: Features that require browser APIs will be progressively enhanced after hydration
 
-The solution implements a layered approach:
-
-1. **Server-Safe Data Layer**: Ensures consistent data between server and client
-2. **Client-Only Components**: Isolates browser-dependent logic
-3. **Hydration Guards**: Prevents server/client mismatches
-4. **Consistent State Management**: Synchronizes initial state properly
-
-### Component Isolation Strategy
-
-Components will be categorized into:
-- **Universal Components**: Safe for both server and client rendering
-- **Client-Only Components**: Wrapped with proper hydration guards
-- **Hybrid Components**: Use conditional rendering with consistent fallbacks
+### Component Categories
+1. **SSR-Safe Components**: Can render identically on server and client
+2. **Client-Only Components**: Require browser APIs and should only render on client
+3. **Hybrid Components**: Have both SSR-safe and client-only parts
 
 ## Components and Interfaces
 
-### 1. Hydration-Safe Hook (`useIsomorphicLayoutEffect`)
-
-```typescript
-interface HydrationSafeHook {
-  useIsomorphicLayoutEffect: (effect: EffectCallback, deps?: DependencyList) => void
-  useHydrationSafe: <T>(clientValue: T, serverValue: T) => T
-}
-```
-
-### 2. Client-Only Wrapper Component
-
+### 1. ClientOnly Wrapper Component
 ```typescript
 interface ClientOnlyProps {
   children: React.ReactNode
   fallback?: React.ReactNode
 }
-
-interface ClientOnlyComponent {
-  ClientOnly: React.FC<ClientOnlyProps>
-}
 ```
+- Renders fallback during SSR
+- Renders children only after hydration
+- Prevents hydration mismatches for browser-dependent components
 
-### 3. Consistent Date Provider
-
+### 2. useIsomorphicLayoutEffect Hook
 ```typescript
-interface DateContextType {
-  now: Date
-  formatDate: (date: Date) => string
-  getRelativeTime: (date: Date) => string
-}
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 ```
+- Provides consistent effect behavior between server and client
+- Prevents hydration warnings from useLayoutEffect
 
-### 4. Safe Random Value Generator
-
+### 3. useHydrated Hook
 ```typescript
-interface RandomValueGenerator {
-  generateSafeId: () => string
-  generateConsistentWidth: (seed: string) => string
+interface UseHydratedReturn {
+  isHydrated: boolean
 }
 ```
+- Tracks hydration state
+- Allows components to render differently before/after hydration
+- Ensures consistent initial render
+
+### 4. SafeLocalStorage Utility
+```typescript
+interface SafeLocalStorageInterface {
+  getItem: (key: string) => string | null
+  setItem: (key: string, value: string) => void
+  removeItem: (key: string) => void
+}
+```
+- Provides SSR-safe localStorage access
+- Returns null during SSR
+- Prevents hydration mismatches from localStorage usage
 
 ## Data Models
 
-### Hydration State Model
-
+### Hydration State
 ```typescript
 interface HydrationState {
   isHydrated: boolean
   hasMounted: boolean
-  serverTimestamp: number
-  clientTimestamp?: number
 }
 ```
 
-### Safe Component Props
-
+### Client-Only Feature State
 ```typescript
-interface SafeComponentProps {
-  suppressHydrationWarning?: boolean
-  fallback?: React.ReactNode
-  isClient?: boolean
+interface ClientFeatureState {
+  isSupported: boolean
+  isEnabled: boolean
+  fallbackUsed: boolean
 }
 ```
 
 ## Error Handling
 
-### Hydration Error Boundary
+### Hydration Error Detection
+- Implement error boundaries specifically for hydration errors
+- Log detailed information about hydration mismatches
+- Provide fallback rendering for failed hydrations
 
-- Catches hydration-specific errors
-- Provides fallback UI for failed hydrations
-- Logs detailed error information for debugging
-- Gracefully degrades functionality when needed
-
-### Development vs Production Handling
-
-- **Development**: Detailed error messages and component identification
-- **Production**: Silent fallbacks with error reporting
-- **Monitoring**: Integration with error tracking services
+### Browser API Fallbacks
+- Graceful degradation when browser APIs are unavailable
+- Consistent fallback behavior between server and client
+- User feedback for unsupported features
 
 ## Testing Strategy
 
-### Unit Testing
+### Hydration Testing
+- Unit tests for SSR/client rendering consistency
+- Integration tests for hydration-sensitive components
+- Visual regression tests for layout consistency
 
-1. **Component Rendering Tests**
-   - Verify consistent output between server and client
-   - Test with different initial states
-   - Validate fallback behaviors
+### Browser API Mocking
+- Mock browser APIs in SSR environment
+- Test fallback behavior
+- Verify progressive enhancement
 
-2. **Hook Testing**
-   - Test hydration-safe hooks with SSR simulation
-   - Verify state consistency across renders
-   - Test error conditions and recovery
-
-### Integration Testing
-
-1. **Full Page Hydration Tests**
-   - Test complete page hydration cycles
-   - Verify no console errors during hydration
-   - Test with different browser conditions
-
-2. **State Persistence Tests**
-   - Test localStorage integration with SSR
-   - Verify wallet state consistency
-   - Test theme persistence across hydration
-
-### E2E Testing
-
-1. **Hydration Flow Tests**
-   - Test complete user flows without hydration errors
-   - Verify interactive elements work immediately after hydration
-   - Test with slow network conditions
-
-2. **Cross-Browser Testing**
-   - Test hydration behavior across different browsers
-   - Verify consistent behavior with browser extensions
-   - Test with JavaScript disabled/enabled scenarios
-
-## Implementation Phases
+## Implementation Plan
 
 ### Phase 1: Core Infrastructure
-- Implement hydration-safe utilities
-- Create ClientOnly wrapper component
-- Add hydration error boundary
+1. Create ClientOnly wrapper component
+2. Implement useHydrated hook
+3. Create SafeLocalStorage utility
+4. Add useIsomorphicLayoutEffect hook
 
 ### Phase 2: Component Fixes
-- Fix WalletProvider localStorage issues
-- Update components with dynamic dates
-- Replace Math.random() with consistent alternatives
+1. Fix WalletProvider hydration issues
+2. Update components using navigator APIs
+3. Fix components using localStorage/sessionStorage
+4. Address Math.random() and Date.now() usage
 
-### Phase 3: Testing & Validation
-- Add comprehensive test coverage
-- Implement monitoring and error tracking
-- Performance optimization for hydration
+### Phase 3: Layout and Styling
+1. Fix dynamic className generation
+2. Address CSS-in-JS hydration issues
+3. Ensure consistent font loading
+4. Fix responsive design hydration
 
-### Phase 4: Documentation & Guidelines
-- Create development guidelines for hydration-safe components
-- Add linting rules to prevent future issues
-- Document best practices for the team
+### Phase 4: Validation and Testing
+1. Add hydration error monitoring
+2. Implement comprehensive testing
+3. Performance optimization
+4. Documentation updates
+
+## Specific Issues Identified
+
+### 1. WalletProvider localStorage Usage
+- **Issue**: localStorage access during SSR causes hydration mismatch
+- **Solution**: Use SafeLocalStorage utility and defer localStorage operations until after hydration
+
+### 2. Navigator API Usage
+- **Issue**: navigator.clipboard and navigator.share used without client-side checks
+- **Solution**: Wrap in ClientOnly components or add proper client-side guards
+
+### 3. Dynamic Content Generation
+- **Issue**: Math.random() and Date.now() create different values on server vs client
+- **Solution**: Use consistent seed values or defer dynamic content until after hydration
+
+### 4. Event Listeners
+- **Issue**: Window event listeners added during SSR
+- **Solution**: Use useEffect to add listeners only on client side
+
+### 5. Browser Extension Interference
+- **Issue**: Browser extensions modify DOM before React hydration
+- **Solution**: Implement robust error boundaries and recovery mechanisms

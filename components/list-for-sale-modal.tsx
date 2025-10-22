@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useHydrated, safeDateFromNow } from "@/lib/hydration"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,6 +44,7 @@ export function ListForSaleModal({
   const [duration, setDuration] = useState("30") // days
   const [priceError, setPriceError] = useState("")
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const { isHydrated } = useHydrated()
   
   const { listNFTForSale, isLoading: isListing, error } = useMarketplaceIntegration()
 
@@ -317,7 +319,7 @@ export function ListForSaleModal({
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Expires:</span>
                   <span>
-                    {new Date(Date.now() + parseInt(duration) * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                    {safeDateFromNow(parseInt(duration) * 24 * 60 * 60 * 1000).toLocaleDateString()}
                   </span>
                 </div>
               </div>

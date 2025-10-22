@@ -80,8 +80,5 @@ export function Header() {
       </div>
       <RealTimeIndicator />
     </header>
-        </div>
-      </div>
-    </header>
   )
 }

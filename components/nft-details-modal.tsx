@@ -26,6 +26,7 @@ import {
   Loader2
 } from "lucide-react"
 import { toast } from "sonner"
+import { SafeNavigator } from "@/lib/hydration"
 import { NFTTransactionHistory } from "./nft-transaction-history"
 
 interface NFTDetailsModalProps {
@@ -50,26 +51,36 @@ export function NFTDetailsModal({
 
   if (!nft) return null
 
-  const copyTokenId = () => {
-    navigator.clipboard.writeText(nft.id)
-    toast.success("Token ID copied to clipboard")
-  }
-
-  const copyAddress = (address: string, label: string) => {
-    navigator.clipboard.writeText(address)
-    toast.success(`${label} address copied to clipboard`)
-  }
-
-  const shareNFT = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: nft.name,
-        text: nft.description,
-        url: `/nft/${nft.id}`
-      })
+  const copyTokenId = async () => {
+    const success = await SafeNavigator.copyToClipboard(nft.id)
+    if (success) {
+      toast.success("Token ID copied to clipboard")
     } else {
-      navigator.clipboard.writeText(`${window.location.origin}/nft/${nft.id}`)
+      toast.error("Failed to copy token ID")
+    }
+  }
+
+  const copyAddress = async (address: string, label: string) => {
+    const success = await SafeNavigator.copyToClipboard(address)
+    if (success) {
+      toast.success(`${label} address copied to clipboard`)
+    } else {
+      toast.error(`Failed to copy ${label.toLowerCase()} address`)
+    }
+  }
+
+  const shareNFT = async () => {
+    const shareData = {
+      title: nft.name,
+      text: nft.description,
+      url: `${typeof window !== 'undefined' ? window.location.origin : ''}/nft/${nft.id}`
+    }
+    
+    const success = await SafeNavigator.share(shareData)
+    if (success && !SafeNavigator.isShareSupported) {
       toast.success("Link copied to clipboard")
+    } else if (!success) {
+      toast.error("Failed to share NFT")
     }
   }
 

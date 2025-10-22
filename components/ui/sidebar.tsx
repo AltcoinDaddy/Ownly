@@ -7,6 +7,7 @@ import { PanelLeftIcon } from 'lucide-react'
 
 import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
+import { useHydrated, SafeCookies, useIsomorphicLayoutEffect, safeRandomWidth } from '@/lib/hydration'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -67,11 +68,26 @@ function SidebarProvider({
   onOpenChange?: (open: boolean) => void
 }) {
   const isMobile = useIsMobile()
+  const { isHydrated } = useHydrated()
   const [openMobile, setOpenMobile] = React.useState(false)
 
-  // This is the internal state of the sidebar.
-  // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen)
+  // Initialize sidebar state from cookie after hydration
+  const [_open, _setOpen] = React.useState(() => {
+    // Always use defaultOpen for initial render to prevent hydration mismatch
+    return defaultOpen
+  })
+
+  // Load saved state from cookie after hydration
+  React.useEffect(() => {
+    if (isHydrated && !openProp && typeof window !== 'undefined') {
+      const savedState = SafeCookies.get(SIDEBAR_COOKIE_NAME)
+      if (savedState !== null) {
+        const isOpen = savedState === 'true'
+        _setOpen(isOpen)
+      }
+    }
+  }, [isHydrated, openProp])
+
   const open = openProp ?? _open
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
@@ -82,10 +98,15 @@ function SidebarProvider({
         _setOpen(openState)
       }
 
-      // This sets the cookie to keep the sidebar state.
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+      // Save state to cookie (client-side only)
+      if (isHydrated && typeof window !== 'undefined') {
+        SafeCookies.set(SIDEBAR_COOKIE_NAME, String(openState), {
+          maxAge: SIDEBAR_COOKIE_MAX_AGE,
+          path: '/'
+        })
+      }
     },
-    [setOpenProp, open],
+    [setOpenProp, open, isHydrated],
   )
 
   // Helper to toggle the sidebar.
@@ -93,8 +114,11 @@ function SidebarProvider({
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
   }, [isMobile, setOpen, setOpenMobile])
 
-  // Adds a keyboard shortcut to toggle the sidebar.
-  React.useEffect(() => {
+  // Adds a keyboard shortcut to toggle the sidebar (client-side only after hydration)
+  useIsomorphicLayoutEffect(() => {
+    // Only add event listeners on client side after hydration
+    if (!isHydrated || typeof window === 'undefined') return
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
@@ -107,7 +131,7 @@ function SidebarProvider({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [toggleSidebar])
+  }, [toggleSidebar, isHydrated])
 
   // We add a state so that we can do data-state="expanded" or "collapsed".
   // This makes it easier to style the sidebar with Tailwind classes.
@@ -606,10 +630,11 @@ function SidebarMenuSkeleton({
 }: React.ComponentProps<'div'> & {
   showIcon?: boolean
 }) {
-  // Random width between 50 to 90%.
+  // Use safeRandomWidth for consistent width generation across SSR and client
+  // Different ranges based on showIcon to provide visual variety while maintaining consistency
   const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
-  }, [])
+    return showIcon ? safeRandomWidth(70, 80) : safeRandomWidth(60, 70)
+  }, [showIcon])
 
   return (
     <div
@@ -625,11 +650,11 @@ function SidebarMenuSkeleton({
         />
       )}
       <Skeleton
-        className="h-4 max-w-(--skeleton-width) flex-1"
+        className="h-4 flex-1"
         data-sidebar="menu-skeleton-text"
         style={
           {
-            '--skeleton-width': width,
+            width,
           } as React.CSSProperties
         }
       />

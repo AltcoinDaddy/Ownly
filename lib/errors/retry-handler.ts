@@ -1,6 +1,7 @@
 // Retry Handler with Exponential Backoff
 
 import { OwnlyError, RetryConfig } from './types'
+import { safeRandom } from '@/lib/hydration/safe-random'
 
 export interface RetryOptions {
   maxAttempts?: number
@@ -116,7 +117,7 @@ export class RetryHandler {
     const exponentialDelay = config.baseDelay * Math.pow(config.backoffMultiplier, attempt - 1)
     
     // Add jitter to prevent thundering herd
-    const jitter = Math.random() * 0.1 * exponentialDelay
+    const jitter = safeRandom() * 0.1 * exponentialDelay
     
     return Math.min(exponentialDelay + jitter, config.maxDelay)
   }

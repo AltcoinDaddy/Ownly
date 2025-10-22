@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useHydrated, safeProgressIncrement } from "@/lib/hydration"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -44,9 +45,10 @@ export function TransactionConfirmation({
   onRetry
 }: TransactionConfirmationProps) {
   const [progress, setProgress] = useState(0)
+  const { isHydrated } = useHydrated()
 
   useEffect(() => {
-    if (!transaction || transaction.status !== 'processing') {
+    if (!transaction || transaction.status !== 'processing' || !isHydrated) {
       setProgress(0)
       return
     }
@@ -54,12 +56,13 @@ export function TransactionConfirmation({
     const interval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 90) return prev
-        return prev + Math.random() * 10
+        // Use safe progress increment to prevent hydration mismatches
+        return prev + safeProgressIncrement(5, 10)
       })
     }, 500)
 
     return () => clearInterval(interval)
-  }, [transaction?.status])
+  }, [transaction?.status, isHydrated])
 
   useEffect(() => {
     if (transaction?.status === 'completed') {
@@ -218,8 +221,10 @@ export function TransactionConfirmation({
                   className="h-auto p-0 text-sm"
                   onClick={() => {
                     // Open Flow blockchain explorer
-                    const explorerUrl = `https://flowscan.org/transaction/${transaction.transactionHash}`
-                    window.open(explorerUrl, '_blank')
+                    if (typeof window !== 'undefined') {
+                      const explorerUrl = `https://flowscan.org/transaction/${transaction.transactionHash}`
+                      window.open(explorerUrl, '_blank')
+                    }
                   }}
                 >
                   <span className="font-mono">

@@ -17,6 +17,7 @@ import { mockTransactions } from "@/lib/mock-data"
 import { Settings, Share2, Copy, CheckCircle2, Loader2, RefreshCw } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { SafeNavigator } from "@/lib/hydration"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -71,10 +72,14 @@ export default function ProfilePage() {
     toast.success("Collection refreshed!")
   }
 
-  const copyAddress = () => {
-    navigator.clipboard.writeText(address || user.address)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const copyAddress = async () => {
+    const success = await SafeNavigator.copyToClipboard(address || user.address)
+    if (success) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } else {
+      toast.error("Failed to copy address")
+    }
   }
 
   return (

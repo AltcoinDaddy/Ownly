@@ -171,7 +171,7 @@ npm run test -- test/flow-emulator/ --run
 
 ### Prerequisites
 1. Flow CLI installed (`flow version` should work)
-2. Node.js and npm/pnpm
+2. Node.js and npm
 3. Flow emulator (for full integration tests)
 
 ### Configuration

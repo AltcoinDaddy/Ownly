@@ -116,7 +116,11 @@ export function useNotificationSystem() {
           duration: 8000,
           action: transactionId ? {
             label: 'View Transaction',
-            onClick: () => window.open(`https://flowscan.org/transaction/${transactionId}`, '_blank')
+            onClick: () => {
+              if (typeof window !== 'undefined') {
+                window.open(`https://flowscan.org/transaction/${transactionId}`, '_blank')
+              }
+            }
           } : undefined
         })
         break

@@ -23,6 +23,7 @@ import {
   RefreshCw
 } from "lucide-react"
 import { toast } from "sonner"
+import { SafeNavigator } from "@/lib/hydration"
 
 interface NFTTransactionHistoryProps {
   nftId: string
@@ -100,15 +101,21 @@ export function NFTTransactionHistory({
     }
   }
 
-  const copyTxHash = (txHash: string) => {
-    navigator.clipboard.writeText(txHash)
-    toast.success("Transaction hash copied to clipboard")
+  const copyTxHash = async (txHash: string) => {
+    const success = await SafeNavigator.copyToClipboard(txHash)
+    if (success) {
+      toast.success("Transaction hash copied to clipboard")
+    } else {
+      toast.error("Failed to copy transaction hash")
+    }
   }
 
   const openBlockExplorer = (txHash: string) => {
-    // TODO: Replace with actual Flow block explorer URL
-    const explorerUrl = `https://flowscan.org/transaction/${txHash}`
-    window.open(explorerUrl, '_blank')
+    if (typeof window !== 'undefined') {
+      // TODO: Replace with actual Flow block explorer URL
+      const explorerUrl = `https://flowscan.org/transaction/${txHash}`
+      window.open(explorerUrl, '_blank')
+    }
   }
 
   // Loading state

@@ -16,6 +16,7 @@ import { mockTransactions } from "@/lib/mock-data"
 import { Wallet, ArrowUpRight, ArrowDownLeft, Copy, CheckCircle2, ExternalLink, RefreshCw, Loader2 } from "lucide-react"
 import { useFlowBalance, useUserNFTs } from "@/lib/flow/hooks"
 import { toast } from "sonner"
+import { SafeNavigator } from "@/lib/hydration"
 
 export default function WalletPage() {
   const { isConnected, user, address } = useWallet()
@@ -48,10 +49,14 @@ export default function WalletPage() {
     )
   }
 
-  const copyAddress = () => {
-    navigator.clipboard.writeText(address || user.address)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const copyAddress = async () => {
+    const success = await SafeNavigator.copyToClipboard(address || user.address)
+    if (success) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } else {
+      toast.error("Failed to copy address")
+    }
   }
 
   const handleSend = async (e: React.FormEvent) => {

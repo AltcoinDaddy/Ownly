@@ -5,7 +5,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Generate a unique ID
+import { safeGenerateId } from "@/lib/hydration/safe-random"
+
+// Generate a unique ID (SSR-safe)
 export function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  return safeGenerateId()
 }

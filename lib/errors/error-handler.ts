@@ -232,8 +232,9 @@ export class ErrorHandler {
 
   // Initialize global error handlers
   static initialize(): void {
-    // Handle unhandled promise rejections
+    // Only initialize on client side to prevent hydration issues
     if (typeof window !== 'undefined') {
+      // Handle unhandled promise rejections
       window.addEventListener('unhandledrejection', (event) => {
         const error = event.reason
         this.handle(error, {

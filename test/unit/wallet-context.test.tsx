@@ -1,3 +1,4 @@
+import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, act, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -141,11 +142,12 @@ describe('WalletContext', () => {
 
     const connectBtn = screen.getByTestId('connect-btn')
     
-    await expect(async () => {
-      await act(async () => {
+    // The connect function catches and re-throws errors
+    await expect(
+      act(async () => {
         await userEvent.click(connectBtn)
       })
-    }).rejects.toThrow('Connection failed')
+    ).rejects.toThrow('Connection failed')
 
     expect(mockAuthenticate).toHaveBeenCalledOnce()
   })
@@ -220,11 +222,11 @@ describe('WalletContext', () => {
       
       expect(userData).toMatchObject({
         id: mockUser.addr,
-        address: mockUser.addr,
+        walletAddress: mockUser.addr,
         username: mockUser.addr.slice(0, 8),
         verified: false,
-        followers: 0,
-        following: 0,
+        nftsOwned: 0,
+        nftsCreated: 0,
       })
       expect(userData.avatar).toContain('placeholder.svg')
       expect(userData.bio).toBe('Flow blockchain user')

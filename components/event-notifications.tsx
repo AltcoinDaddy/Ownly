@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { useNotificationEvents } from "@/lib/flow/event-context"
+import { useNotificationEvents, useNFTEvents, useMarketplaceEvents } from "@/lib/flow/event-context"
 import { cn } from "@/lib/utils"
 
 interface NotificationItemProps {

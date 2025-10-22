@@ -1,21 +1,5 @@
 {
-  "/api/marketplace/buy/route": "app/api/marketplace/buy/route.js",
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/marketplace/list/route": "app/api/marketplace/list/route.js",
-  "/api/auth/connect/route": "app/api/auth/connect/route.js",
-  "/api/nft/transfer/route": "app/api/nft/transfer/route.js",
-  "/api/events/route": "app/api/events/route.js",
-  "/api/marketplace/route": "app/api/marketplace/route.js",
-  "/api/user/[address]/route": "app/api/user/[address]/route.js",
-  "/api/user/[address]/cache/route": "app/api/user/[address]/cache/route.js",
   "/api/nft/mint/route": "app/api/nft/mint/route.js",
-  "/api/performance/route": "app/api/performance/route.js",
-  "/api/performance/test/route": "app/api/performance/test/route.js",
-  "/marketplace/page": "app/marketplace/page.js",
-  "/profile/page": "app/profile/page.js",
   "/page": "app/page.js",
-  "/mint/page": "app/mint/page.js",
-  "/nft/[id]/page": "app/nft/[id]/page.js",
-  "/wallet/page": "app/wallet/page.js",
-  "/performance/page": "app/performance/page.js"
+  "/mint/page": "app/mint/page.js"
 }

@@ -98,7 +98,11 @@ export function NFTGallery({
             duration: 5000,
             action: {
               label: "View",
-              onClick: () => window.location.href = `/nft/${eventData.nftId}`
+              onClick: () => {
+              if (typeof window !== 'undefined') {
+                window.location.href = `/nft/${eventData.nftId}`
+              }
+            }
             }
           })
           // Trigger event handler
@@ -168,7 +172,8 @@ export function NFTGallery({
       }
     }
 
-    if (typeof window !== "undefined") {
+    // Only add event listeners on client side
+    if (typeof window !== 'undefined') {
       window.addEventListener("nft-event", handleNFTEvent as EventListener)
       return () => window.removeEventListener("nft-event", handleNFTEvent as EventListener)
     }

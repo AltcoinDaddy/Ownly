@@ -95,7 +95,11 @@ function createToastActions(
       <ToastAction 
         key="help" 
         altText="Get Help" 
-        onClick={() => window.open(error.helpUrl, '_blank')}
+        onClick={() => {
+          if (typeof window !== 'undefined') {
+            window.open(error.helpUrl, '_blank')
+          }
+        }}
       >
         <ExternalLink className="h-4 w-4 mr-1" />
         Help

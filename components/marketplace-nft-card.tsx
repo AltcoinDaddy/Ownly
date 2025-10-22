@@ -63,7 +63,11 @@ export function MarketplaceNFTCard({
             duration: 6000,
             action: {
               label: "View Profile",
-              onClick: () => window.location.href = `/profile`
+              onClick: () => {
+              if (typeof window !== 'undefined') {
+                window.location.href = `/profile`
+              }
+            }
             }
           })
         } else if (lastMarketplaceEvent.data.buyer === userAddress) {
@@ -72,7 +76,11 @@ export function MarketplaceNFTCard({
             duration: 6000,
             action: {
               label: "View NFT",
-              onClick: () => window.location.href = `/nft/${listing.nft_id}`
+              onClick: () => {
+              if (typeof window !== 'undefined') {
+                window.location.href = `/nft/${listing.nft_id}`
+              }
+            }
             }
           })
         }
@@ -107,7 +115,8 @@ export function MarketplaceNFTCard({
       }
     }
 
-    if (typeof window !== "undefined") {
+    // Only add event listeners on client side
+    if (typeof window !== 'undefined') {
       window.addEventListener("marketplace-event", handleMarketplaceEvent as EventListener)
       return () => window.removeEventListener("marketplace-event", handleMarketplaceEvent as EventListener)
     }

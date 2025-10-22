@@ -1,71 +1,71 @@
 # Implementation Plan
 
-- [ ] 1. Create hydration-safe utility hooks and components
-  - Implement `useIsomorphicLayoutEffect` hook for SSR-safe effects
-  - Create `useHydrationSafe` hook for consistent server/client values
-  - Build `ClientOnly` wrapper component with proper fallbacks
-  - Add comprehensive TypeScript types for hydration utilities
-  - _Requirements: 1.2, 2.2, 3.1_
+- [x] 1. Create core hydration utilities and hooks
+  - Implement ClientOnly wrapper component for browser-dependent features
+  - Create useHydrated hook to track hydration state
+  - Build SafeLocalStorage utility for SSR-safe storage access
+  - Add useIsomorphicLayoutEffect hook for consistent effects
+  - _Requirements: 1.2, 1.4, 4.2_
 
-- [ ] 2. Implement hydration error boundary
-  - Create `HydrationErrorBoundary` component to catch hydration errors
-  - Add error logging and reporting functionality
-  - Implement graceful fallback UI for hydration failures
-  - Write unit tests for error boundary behavior
-  - _Requirements: 1.1, 2.1, 4.3_
+- [x] 2. Fix WalletProvider hydration issues
+  - Update WalletProvider to use SafeLocalStorage utility
+  - Defer localStorage operations until after hydration
+  - Ensure consistent initial state between server and client
+  - Add proper client-side guards for FCL operations
+  - _Requirements: 1.1, 1.2, 2.3_
 
-- [ ] 3. Fix WalletProvider localStorage hydration issues
-  - Wrap localStorage access in client-side checks
-  - Implement proper initial state handling for SSR
-  - Add hydration-safe user state management
-  - Create tests for wallet state consistency across hydration
-  - _Requirements: 1.1, 1.3, 3.1_
+- [x] 3. Fix navigator API usage in components
+  - Wrap clipboard operations in ClientOnly components
+  - Add client-side checks for navigator.share API
+  - Update copy functionality to be hydration-safe
+  - Implement fallbacks for unsupported browser features
+  - _Requirements: 1.4, 2.2, 4.2_
 
-- [ ] 4. Replace dynamic date generation with consistent values
-  - Update `list-for-sale-modal.tsx` to use consistent date formatting
-  - Fix `lib/flow/events.ts` timestamp generation for SSR compatibility
-  - Update `lib/flow/nft-service.ts` mint date handling
-  - Implement server-safe date utilities in `lib/flow/collection-service.ts`
-  - _Requirements: 1.2, 3.2_
+- [x] 4. Fix dynamic content generation issues
+  - Replace Math.random() usage with consistent alternatives
+  - Update Date.now() usage to be SSR-safe
+  - Fix dynamic expiration date calculations
+  - Ensure consistent progress bar animations
+  - _Requirements: 1.2, 2.1, 4.3_
 
-- [ ] 5. Fix random value generation in UI components
-  - Replace `Math.random()` in `components/ui/sidebar.tsx` with deterministic alternative
-  - Implement seed-based width generation for consistent SSR/client rendering
-  - Create utility function for generating consistent pseudo-random values
-  - Add tests for consistent random value generation
-  - _Requirements: 1.2, 3.2_
+- [x] 5. Fix event listener hydration issues
+  - Update window event listeners to use useEffect
+  - Ensure event listeners are only added on client side
+  - Fix NFT gallery and marketplace card event handling
+  - Add proper cleanup for event listeners
+  - _Requirements: 1.4, 4.1_
 
-- [ ] 6. Update root layout for proper hydration handling
-  - Wrap WalletProvider with ClientOnly component
-  - Add hydration error boundary to root layout
-  - Implement proper Suspense boundaries for async components
-  - Test layout hydration with different loading states
-  - _Requirements: 1.1, 1.3, 4.1_
+- [x] 6. Fix localStorage usage in notification system
+  - Update notification preferences to use SafeLocalStorage
+  - Defer preference loading until after hydration
+  - Ensure consistent notification state between server and client
+  - Add fallback behavior for disabled localStorage
+  - _Requirements: 1.2, 2.3, 4.3_
 
-- [ ] 7. Add hydration monitoring and debugging tools
-  - Implement development-mode hydration mismatch detection
-  - Create utility to compare server vs client rendered HTML
-  - Add console warnings for potential hydration issues
-  - Write integration tests for hydration monitoring
-  - _Requirements: 2.1, 2.2_
+- [x] 7. Fix sidebar cookie and random width issues
+  - Update sidebar cookie operations to be client-side only
+  - Fix random width generation to be consistent
+  - Ensure sidebar state is hydration-safe
+  - Add proper SSR fallbacks for sidebar functionality
+  - _Requirements: 1.2, 2.1, 4.3_
 
-- [ ] 8. Create comprehensive hydration tests
-  - Write unit tests for all hydration-safe utilities
-  - Add integration tests for complete page hydration cycles
-  - Implement E2E tests for user flows without hydration errors
+- [x] 8. Add hydration error boundaries and monitoring
+  - Create HydrationErrorBoundary component
+  - Implement error logging for hydration mismatches
+  - Add recovery mechanisms for failed hydrations
+  - Create development-time hydration warnings
+  - _Requirements: 3.1, 3.2, 2.4_
+
+- [x] 9. Update layout and root components
+  - Fix body className hydration in layout
+  - Ensure consistent font loading between server and client
+  - Add proper Suspense boundaries for async components
+  - Fix any remaining root-level hydration issues
+  - _Requirements: 1.1, 2.1, 2.3_
+
+- [-] 10. Add comprehensive hydration testing
+  - Create unit tests for hydration-safe components
+  - Add integration tests for SSR/client consistency
+  - Implement visual regression tests for layout stability
   - Create performance tests for hydration speed
-  - _Requirements: 1.1, 4.2, 4.3_
-
-- [ ] 9. Update theme provider for SSR compatibility
-  - Ensure ThemeProvider doesn't cause hydration mismatches
-  - Add proper initial theme handling for SSR
-  - Test theme persistence across hydration cycles
-  - Implement fallback for theme loading states
-  - _Requirements: 1.1, 4.1, 4.3_
-
-- [ ] 10. Integrate all fixes and validate complete solution
-  - Test entire application for hydration errors
-  - Verify all interactive elements work immediately after hydration
-  - Run comprehensive test suite to ensure no regressions
-  - Document hydration-safe development patterns for future use
-  - _Requirements: 1.1, 1.3, 4.2, 4.4_
+  - _Requirements: 3.1, 3.3, 3.4_

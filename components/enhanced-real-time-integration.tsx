@@ -102,7 +102,11 @@ export function EnhancedRealTimeIntegration({
             duration: 6000,
             action: {
               label: "View NFT",
-              onClick: () => window.location.href = `/nft/${data.nftId}`
+              onClick: () => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/nft/${data.nftId}`
+                }
+              }
             }
           })
         } else {
@@ -120,7 +124,11 @@ export function EnhancedRealTimeIntegration({
             duration: 5000,
             action: {
               label: "View Collection",
-              onClick: () => window.location.href = `/profile`
+              onClick: () => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/profile`
+                }
+              }
             }
           })
         } else if (data.from === address) {
@@ -143,7 +151,11 @@ export function EnhancedRealTimeIntegration({
             duration: 6000,
             action: {
               label: "View Transaction",
-              onClick: () => window.location.href = `/profile`
+              onClick: () => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/profile`
+                }
+              }
             }
           })
         } else if (data.buyer === address) {
@@ -152,7 +164,11 @@ export function EnhancedRealTimeIntegration({
             duration: 6000,
             action: {
               label: "View NFT",
-              onClick: () => window.location.href = `/nft/${data.nftId}`
+              onClick: () => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/nft/${data.nftId}`
+                }
+              }
             }
           })
         } else {
@@ -170,7 +186,11 @@ export function EnhancedRealTimeIntegration({
             duration: 5000,
             action: {
               label: "View Marketplace",
-              onClick: () => window.location.href = `/marketplace`
+              onClick: () => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/marketplace`
+                }
+              }
             }
           })
         } else {
@@ -179,7 +199,11 @@ export function EnhancedRealTimeIntegration({
             duration: 3000,
             action: {
               label: "View Marketplace",
-              onClick: () => window.location.href = `/marketplace`
+              onClick: () => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = `/marketplace`
+                }
+              }
             }
           })
         }
